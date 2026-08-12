@@ -174,13 +174,18 @@ bindMoneyInput(fRemove, recalcTotal);
 bindMoneyInput(fDiscount, recalcTotal);
 
 /* ---------- 參考款式（單圖） ---------- */
-refDrop.addEventListener('click', () => fRefImg.click());
 fRefImg.addEventListener('change', async () => {
   const file = fRefImg.files[0];
   if (!file) return;
-  const data = await fileToCompressedBase64(file);
-  state.refImage = { data, name: file.name };
-  state.existingRefUrl = '';
+  refPreviewWrap.innerHTML = `<span class="dz-processing">處理中…</span>`;
+  refPreviewWrap.classList.add('has-image');
+  try {
+    const data = await fileToCompressedBase64(file);
+    state.refImage = { data, name: file.name };
+    state.existingRefUrl = '';
+  } catch (err) {
+    alert('圖片讀取失敗：' + err.message);
+  }
   renderRefPreview();
 });
 function renderRefPreview() {
@@ -195,12 +200,20 @@ function renderRefPreview() {
 }
 
 /* ---------- 施作款式（多圖） ---------- */
-actDrop.addEventListener('click', () => fActImg.click());
 fActImg.addEventListener('change', async () => {
   const files = Array.from(fActImg.files || []);
-  for (const file of files) {
-    const data = await fileToCompressedBase64(file);
-    state.actImages.push({ kind: 'new', data, name: file.name });
+  if (!files.length) return;
+  const processingItem = document.createElement('div');
+  processingItem.className = 'thumb-item thumb-processing';
+  processingItem.innerHTML = `<span class="dz-processing">處理中…</span>`;
+  actThumbGrid.appendChild(processingItem);
+  try {
+    for (const file of files) {
+      const data = await fileToCompressedBase64(file);
+      state.actImages.push({ kind: 'new', data, name: file.name });
+    }
+  } catch (err) {
+    alert('圖片讀取失敗：' + err.message);
   }
   fActImg.value = '';
   renderActThumbs();
@@ -223,7 +236,6 @@ function renderActThumbs() {
 }
 
 /* ---------- 施作影片 ---------- */
-videoDrop.addEventListener('click', () => fVideo.click());
 fVideo.addEventListener('change', async () => {
   const file = fVideo.files[0];
   if (!file) return;
@@ -232,9 +244,15 @@ fVideo.addEventListener('change', async () => {
     fVideo.value = '';
     return;
   }
-  const data = await fileToRawBase64(file);
-  state.video = { data, name: file.name };
-  state.existingVideoUrl = '';
+  videoPreviewWrap.innerHTML = `<span class="dz-processing">處理中…</span>`;
+  videoPreviewWrap.classList.add('has-image');
+  try {
+    const data = await fileToRawBase64(file);
+    state.video = { data, name: file.name };
+    state.existingVideoUrl = '';
+  } catch (err) {
+    alert('影片讀取失敗：' + err.message);
+  }
   renderVideoPreview();
 });
 function renderVideoPreview() {

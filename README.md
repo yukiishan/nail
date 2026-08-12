@@ -26,7 +26,8 @@ nail-journal/
     └── Code.gs           貼到 Google Apps Script 的後端程式
 ```
 
-上傳到 GitHub 的只有根目錄 4 個檔案：`index.html`、`style.css`、`app.js`、`config.js`。
+上傳到 GitHub 的是根目錄這 **7 個檔案**：`index.html`、`style.css`、`app.js`、`config.js`、
+`apple-touch-icon.png`、`icon-192.png`、`favicon-32.png`。
 `apps-script/Code.gs` 只需要貼到 Google Apps Script 編輯器裡，不用放進 GitHub。
 
 ---

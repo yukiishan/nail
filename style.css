@@ -101,7 +101,11 @@ body {
   cursor: pointer;
   position: relative;
   transition: background .15s, color .15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
 }
+.tab-icon { width: 16px; height: 16px; flex-shrink: 0; }
 .tab-btn:hover { background: var(--sage-softer); color: var(--sage-dark); }
 .tab-btn.active {
   color: var(--sage-dark);
@@ -136,17 +140,16 @@ body {
 }
 
 .card-head { margin-bottom: 22px; position: relative; }
-.card-head.form-head { padding-right: 110px; }
+.tag-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.tag-row .card-tag { margin-bottom: 0; }
 .back-btn {
-  position: absolute;
-  top: 0; right: 0;
   border: 1px solid var(--line-strong);
   background: var(--surface);
   color: var(--sage-dark);
   font-family: var(--sans);
   font-size: 12.5px;
   font-weight: 600;
-  padding: 7px 14px;
+  padding: 6px 13px;
   border-radius: 20px;
   cursor: pointer;
   transition: border-color .12s, background .12s;
@@ -503,7 +506,7 @@ input.money-input:focus {
   color: var(--ink-faint);
   cursor: pointer;
 }
-.bn-icon { font-size: 19px; }
+.bn-icon { width: 21px; height: 21px; }
 .bn-label { font-size: 10.5px; font-weight: 600; }
 .bn-btn.active { color: var(--sage-dark); background: var(--sage-soft); }
 
@@ -537,12 +540,15 @@ input.money-input:focus {
 
   .card { padding: 20px; border-radius: 16px; }
   .field-row.three, .field-row.two { flex-direction: column; }
+  .field-row.two .field,
+  .field-row.three .field,
+  .field-row .upload-field { flex: none; width: 100%; }
   .entry-breakdown { grid-template-columns: 1fr; }
-  .card-head.form-head { padding-right: 96px; }
+  .card-head.form-head { margin-bottom: 18px; }
   .back-btn { font-size: 11.5px; padding: 6px 11px; }
 
-  .entry-head { flex-direction: column; align-items: flex-start; }
-  .entry-actions { width: 100%; justify-content: space-between; }
+  .entry-head { flex-direction: row; flex-wrap: wrap; }
+  .entry-head-left { flex-wrap: wrap; row-gap: 8px; }
 
   .foot { padding-bottom: 90px; }
 }

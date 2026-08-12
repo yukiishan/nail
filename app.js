@@ -494,12 +494,10 @@ function renderTimeline(records) {
         <div class="entry-head-left">
           <span class="entry-date">${formatDate(r['日期'])}</span>
           <span class="part-badge">${r['施作部位'] || '—'}</span>
-        </div>
-        <div class="entry-actions">
-          <span class="entry-total">NT$ <b>${formatThousands(total)}</b></span>
           <button type="button" class="icon-btn edit" title="編輯">✎</button>
           <button type="button" class="icon-btn delete" title="刪除">🗑</button>
         </div>
+        <span class="entry-total">NT$ <b>${formatThousands(total)}</b></span>
       </div>
       <div class="entry-breakdown">
         <div class="bd-item"><span class="bd-label">款式金額</span><span class="bd-value">${formatThousands(styleAmount)}</span></div>

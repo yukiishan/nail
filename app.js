@@ -127,6 +127,13 @@ const restoreBtnList = document.getElementById('restoreBtnList');
 const restorePanelList = document.getElementById('restorePanelList');
 const restoreSelectList = document.getElementById('restoreSelectList');
 const restoreConfirmList = document.getElementById('restoreConfirmList');
+const restoreCancelList = document.getElementById('restoreCancelList');
+
+const restoreBtnTimeline = document.getElementById('restoreBtnTimeline');
+const restorePanelTimeline = document.getElementById('restorePanelTimeline');
+const restoreSelectTimeline = document.getElementById('restoreSelectTimeline');
+const restoreConfirmTimeline = document.getElementById('restoreConfirmTimeline');
+const restoreCancelTimeline = document.getElementById('restoreCancelTimeline');
 
 let filterPart = ''; // '' | '手' | '足'
 
@@ -566,57 +573,70 @@ lightbox.addEventListener('click', () => { lightbox.classList.remove('open'); li
 /* ---------- 還原備份 ---------- */
 let backupsCache = null;
 
-restoreBtnList.addEventListener('click', async () => {
-  const opening = restorePanelList.hidden;
-  restorePanelList.hidden = !opening;
-  if (opening) await loadBackupsIntoSelect();
-});
+function setupRestorePanel({ openBtn, panel, select, confirmBtn, cancelBtn }) {
+  openBtn.addEventListener('click', async () => {
+    const opening = panel.hidden;
+    panel.hidden = !opening;
+    if (opening) await loadBackupsIntoSelect(select);
+  });
 
-async function loadBackupsIntoSelect() {
-  restoreSelectList.innerHTML = '<option value="">讀取備份清單中…</option>';
+  cancelBtn.addEventListener('click', () => { panel.hidden = true; });
+
+  confirmBtn.addEventListener('click', async () => {
+    const fileId = select.value;
+    if (!fileId) { alert('請先選擇一份備份。'); return; }
+    const selected = (backupsCache || []).find(b => b.id === fileId);
+    const label = selected ? `${selected.date}　${selected.name}` : fileId;
+    if (!confirm(`確定要用「${label}」覆蓋目前所有紀錄嗎？\n此動作無法復原，目前的資料會被取代。`)) return;
+
+    confirmBtn.disabled = true;
+    confirmBtn.textContent = '還原中…';
+    try {
+      const res = await fetch(CONFIG.API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ action: 'restore', backupFileId: fileId }),
+      });
+      const json = await res.json();
+      if (!json.ok) throw new Error(json.error || '還原失敗');
+      alert(`還原完成，共還原 ${json.restoredRows} 筆紀錄 ✓`);
+      panel.hidden = true;
+      await loadRecords();
+    } catch (err) {
+      alert('還原失敗：' + err.message);
+    } finally {
+      confirmBtn.disabled = false;
+      confirmBtn.textContent = '還原此備份';
+    }
+  });
+}
+
+async function loadBackupsIntoSelect(select) {
+  select.innerHTML = '<option value="">讀取備份清單中…</option>';
   try {
     const res = await fetch(CONFIG.API_URL + '?type=backups', { method: 'GET' });
     const json = await res.json();
     if (!json.ok) throw new Error(json.error || '讀取備份清單失敗');
     backupsCache = json.backups || [];
     if (!backupsCache.length) {
-      restoreSelectList.innerHTML = '<option value="">目前沒有任何備份檔案</option>';
+      select.innerHTML = '<option value="">目前沒有任何備份檔案</option>';
       return;
     }
-    restoreSelectList.innerHTML = backupsCache
+    select.innerHTML = backupsCache
       .map(b => `<option value="${b.id}">${b.date}　${b.name}</option>`)
       .join('');
   } catch (err) {
-    restoreSelectList.innerHTML = '<option value="">讀取失敗：' + err.message + '</option>';
+    select.innerHTML = '<option value="">讀取失敗：' + err.message + '</option>';
   }
 }
 
-restoreConfirmList.addEventListener('click', async () => {
-  const fileId = restoreSelectList.value;
-  if (!fileId) { alert('請先選擇一份備份。'); return; }
-  const selected = (backupsCache || []).find(b => b.id === fileId);
-  const label = selected ? `${selected.date}　${selected.name}` : fileId;
-  if (!confirm(`確定要用「${label}」覆蓋目前所有紀錄嗎？\n此動作無法復原，目前的資料會被取代。`)) return;
-
-  restoreConfirmList.disabled = true;
-  restoreConfirmList.textContent = '還原中…';
-  try {
-    const res = await fetch(CONFIG.API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ action: 'restore', backupFileId: fileId }),
-    });
-    const json = await res.json();
-    if (!json.ok) throw new Error(json.error || '還原失敗');
-    alert(`還原完成，共還原 ${json.restoredRows} 筆紀錄 ✓`);
-    restorePanelList.hidden = true;
-    await loadRecords();
-  } catch (err) {
-    alert('還原失敗：' + err.message);
-  } finally {
-    restoreConfirmList.disabled = false;
-    restoreConfirmList.textContent = '還原此備份';
-  }
+setupRestorePanel({
+  openBtn: restoreBtnList, panel: restorePanelList, select: restoreSelectList,
+  confirmBtn: restoreConfirmList, cancelBtn: restoreCancelList,
+});
+setupRestorePanel({
+  openBtn: restoreBtnTimeline, panel: restorePanelTimeline, select: restoreSelectTimeline,
+  confirmBtn: restoreConfirmTimeline, cancelBtn: restoreCancelTimeline,
 });
 
 /* ---------- 手動備份 ---------- */
@@ -625,9 +645,9 @@ async function runManualBackup(btn) {
     alert('尚未設定 Google Apps Script 網址。');
     return;
   }
-  const original = btn.textContent;
+  const originalHTML = btn.innerHTML;
   btn.disabled = true;
-  btn.textContent = '⏳';
+  btn.innerHTML = '⏳';
   try {
     const res = await fetch(CONFIG.API_URL, {
       method: 'POST',
@@ -646,7 +666,7 @@ async function runManualBackup(btn) {
     alert('備份失敗：' + err.message);
   } finally {
     btn.disabled = false;
-    btn.textContent = original;
+    btn.innerHTML = originalHTML;
   }
 }
 backupBtnList.addEventListener('click', () => runManualBackup(backupBtnList));

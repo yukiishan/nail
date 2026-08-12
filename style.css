@@ -60,12 +60,12 @@ body {
   width: 40px; height: 40px;
   border-radius: 12px;
   background: linear-gradient(150deg, var(--sage) 0%, var(--sage-dark) 100%);
-  color: #fff;
   display: flex; align-items: center; justify-content: center;
-  font-size: 18px;
   flex-shrink: 0;
   box-shadow: 0 6px 14px -6px rgba(110,132,89,0.5);
+  padding: 7px;
 }
+.brand-mark svg { width: 100%; height: 100%; }
 .brand-text h1 {
   font-family: var(--serif);
   font-weight: 600;
@@ -210,6 +210,8 @@ input.money-input {
   outline: none;
   transition: border-color .15s, box-shadow .15s;
   width: 100%;
+  height: 48px;
+  box-sizing: border-box;
 }
 select { font-family: var(--sans); appearance: none;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='9'%3E%3Cpath d='M1 1l6 6 6-6' stroke='%237C8270' stroke-width='1.6' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
@@ -252,7 +254,7 @@ input.money-input:focus {
   position: relative;
   transition: border-color .15s, background .15s;
 }
-.dropzone.multi, .dropzone.video { aspect-ratio: 16 / 7; }
+.dropzone.video { aspect-ratio: 16 / 7; }
 .dropzone:hover { border-color: var(--sage); background: var(--sage-softer); }
 .dropzone-inner {
   height: 100%;
@@ -329,6 +331,57 @@ input.money-input:focus {
 .form-msg { min-height: 18px; margin: 12px 2px 0; font-size: 12.5px; color: var(--ink-faint); }
 .form-msg.error { color: var(--danger); }
 .form-msg.success { color: var(--success); }
+
+/* ---------- 篩選列 ---------- */
+.filter-row { display: flex; gap: 8px; margin-bottom: 18px; }
+.filter-btn {
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  color: var(--ink-dim);
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 7px 18px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: border-color .12s, background .12s, color .12s;
+}
+.filter-btn:hover { border-color: var(--sage); color: var(--sage-dark); }
+.filter-btn.active { background: var(--sage-soft); border-color: var(--sage); color: var(--sage-dark); }
+
+/* ---------- 還原備份面板 ---------- */
+.restore-panel {
+  background: var(--danger-soft);
+  border: 1px solid #E3C7B8;
+  border-radius: 14px;
+  padding: 14px 16px;
+  margin-bottom: 18px;
+}
+.restore-hint { margin: 0 0 10px; font-size: 12.5px; color: #8A5A45; }
+.restore-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.restore-row select {
+  flex: 1; min-width: 180px;
+  background: var(--surface);
+  border: 1px solid #E3C7B8;
+  border-radius: 10px;
+  padding: 9px 12px;
+  font-family: var(--sans);
+  font-size: 13px;
+  color: var(--ink);
+}
+.restore-confirm-btn {
+  border: none;
+  background: var(--danger);
+  color: #fff;
+  font-family: var(--sans);
+  font-weight: 700;
+  font-size: 13px;
+  padding: 9px 18px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+.restore-confirm-btn:hover { opacity: 0.9; }
+.restore-confirm-btn:disabled { opacity: 0.5; cursor: progress; }
 
 /* ---------- LIST HEAD (shared) ---------- */
 .list-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
@@ -489,12 +542,13 @@ input.money-input:focus {
 .bottom-nav {
   display: none;
   position: fixed;
-  left: 0; right: 0; bottom: 0;
+  left: 12px; right: 12px; bottom: calc(14px + env(safe-area-inset-bottom));
   z-index: 30;
   background: var(--surface);
-  border-top: 1px solid var(--line);
-  padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
-  box-shadow: 0 -8px 24px -16px rgba(74,79,66,0.3);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 8px 6px;
+  box-shadow: 0 14px 32px -12px rgba(74,79,66,0.35);
 }
 .bn-btn {
   flex: 1;
@@ -532,7 +586,7 @@ input.money-input:focus {
 
 /* ---------- RESPONSIVE ---------- */
 @media (max-width: 720px) {
-  body { padding-bottom: 76px; }
+  body { padding-bottom: 100px; }
   .topbar .tabs { display: none; }
   .bottom-nav { display: flex; }
   .desktop-only { display: none !important; }
@@ -550,7 +604,7 @@ input.money-input:focus {
   .entry-head { flex-direction: row; flex-wrap: wrap; }
   .entry-head-left { flex-wrap: wrap; row-gap: 8px; }
 
-  .foot { padding-bottom: 90px; }
+  .foot { padding-bottom: 110px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

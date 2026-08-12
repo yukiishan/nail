@@ -20,7 +20,21 @@
 
 <header class="topbar">
   <div class="brand">
-    <span class="brand-mark">✦</span>
+    <span class="brand-mark">
+      <svg viewBox="0 0 100 100" fill="none" stroke="#F7F9F3" stroke-width="4.5" stroke-linejoin="round" stroke-linecap="round">
+        <defs>
+          <path id="bmpetal" d="M0,0 C-8,-7 -10,-19 -5,-26 C-3,-29 -1,-28 0,-25 C1,-28 3,-29 5,-26 C10,-19 8,-7 0,0 Z"/>
+        </defs>
+        <g transform="translate(50,50)">
+          <use href="#bmpetal"/>
+          <use href="#bmpetal" transform="rotate(72)"/>
+          <use href="#bmpetal" transform="rotate(144)"/>
+          <use href="#bmpetal" transform="rotate(216)"/>
+          <use href="#bmpetal" transform="rotate(288)"/>
+          <circle cx="0" cy="0" r="3"/>
+        </g>
+      </svg>
+    </span>
     <div class="brand-text">
       <h1>珊的美甲紀錄</h1>
       <p>Nail Care Log</p>
@@ -162,8 +176,23 @@
       <span class="card-tag gold">紀錄明細</span>
       <h2>所有紀錄</h2>
       <div class="head-actions">
+        <button class="icon-btn" id="restoreBtnList" title="還原備份">📥</button>
         <button class="icon-btn" id="backupBtnList" title="手動備份">💾</button>
         <button class="refresh-btn" id="refreshBtnList" title="重新整理">⟳</button>
+      </div>
+    </div>
+
+    <div class="filter-row" id="filterRowList">
+      <button type="button" class="filter-btn active" data-part="">全部</button>
+      <button type="button" class="filter-btn" data-part="手">手</button>
+      <button type="button" class="filter-btn" data-part="足">足</button>
+    </div>
+
+    <div class="restore-panel" id="restorePanelList" hidden>
+      <p class="restore-hint">選擇一份備份，將會覆蓋目前所有紀錄，請謹慎操作。</p>
+      <div class="restore-row">
+        <select id="restoreSelectList"><option value="">讀取備份清單中…</option></select>
+        <button type="button" class="restore-confirm-btn" id="restoreConfirmList">還原此備份</button>
       </div>
     </div>
 
@@ -198,6 +227,12 @@
         <button class="icon-btn" id="backupBtnTimeline" title="手動備份">💾</button>
         <button class="refresh-btn" id="refreshBtnTimeline" title="重新整理">⟳</button>
       </div>
+    </div>
+
+    <div class="filter-row" id="filterRowTimeline">
+      <button type="button" class="filter-btn active" data-part="">全部</button>
+      <button type="button" class="filter-btn" data-part="手">手</button>
+      <button type="button" class="filter-btn" data-part="足">足</button>
     </div>
 
     <div id="timeline" class="timeline">

@@ -121,6 +121,14 @@ const recordTableBody = document.getElementById('recordTableBody');
 const mobileList = document.getElementById('mobileList');
 const emptyStateList = document.getElementById('emptyStateList');
 const refreshBtnList = document.getElementById('refreshBtnList');
+const filterRowList = document.getElementById('filterRowList');
+const filterRowTimeline = document.getElementById('filterRowTimeline');
+const restoreBtnList = document.getElementById('restoreBtnList');
+const restorePanelList = document.getElementById('restorePanelList');
+const restoreSelectList = document.getElementById('restoreSelectList');
+const restoreConfirmList = document.getElementById('restoreConfirmList');
+
+let filterPart = ''; // '' | '手' | '足'
 
 const timeline = document.getElementById('timeline');
 const emptyStateTimeline = document.getElementById('emptyStateTimeline');
@@ -366,6 +374,27 @@ async function deleteRecord(rowIndex) {
   }
 }
 
+/* ---------- 部位篩選（手／足） ---------- */
+function setFilterPart(part) {
+  filterPart = part;
+  [filterRowList, filterRowTimeline].forEach(row => {
+    row.querySelectorAll('.filter-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.part === part);
+    });
+  });
+  renderTable(allRecords);
+  renderTimeline(allRecords);
+}
+[filterRowList, filterRowTimeline].forEach(row => {
+  row.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => setFilterPart(btn.dataset.part));
+  });
+});
+function applyFilter(records) {
+  if (!filterPart) return records;
+  return records.filter(r => (r['施作部位'] || '') === filterPart);
+}
+
 /* ---------- 讀取紀錄 ---------- */
 async function loadRecords() {
   if (!CONFIG.API_URL || CONFIG.API_URL.includes('YOUR_DEPLOYMENT_ID')) {
@@ -398,14 +427,15 @@ function renderTable(records) {
   recordTableBody.innerHTML = '';
   mobileList.innerHTML = '';
 
-  if (!records.length) {
+  const filtered = applyFilter(records);
+  if (!filtered.length) {
     emptyStateList.style.display = 'block';
-    emptyStateList.textContent = '還沒有任何紀錄，新增第一筆吧！';
+    emptyStateList.textContent = records.length ? '這個篩選條件下沒有紀錄。' : '還沒有任何紀錄，新增第一筆吧！';
     return;
   }
   emptyStateList.style.display = 'none';
 
-  const list = sortedRecords(records);
+  const list = sortedRecords(filtered);
   renderMobileList(list);
 
   list.forEach(r => {
@@ -471,14 +501,15 @@ function renderMobileList(list) {
 function renderTimeline(records) {
   timeline.querySelectorAll('.entry').forEach(el => el.remove());
 
-  if (!records.length) {
+  const filtered = applyFilter(records);
+  if (!filtered.length) {
     emptyStateTimeline.style.display = 'block';
-    emptyStateTimeline.textContent = '還沒有任何紀錄，新增第一筆吧！';
+    emptyStateTimeline.textContent = records.length ? '這個篩選條件下沒有紀錄。' : '還沒有任何紀錄，新增第一筆吧！';
     return;
   }
   emptyStateTimeline.style.display = 'none';
 
-  sortedRecords(records).forEach(r => {
+  sortedRecords(filtered).forEach(r => {
     const styleAmount = Number(r['款式金額(NTD)']) || 0;
     const removeAmount = Number(r['卸甲金額(NTD)']) || 0;
     const discount = Number(r['優惠/特殊費用(NTD)']) || 0;
@@ -532,6 +563,62 @@ function openLightbox(src) {
 }
 lightbox.addEventListener('click', () => { lightbox.classList.remove('open'); lightboxImg.src = ''; });
 
+/* ---------- 還原備份 ---------- */
+let backupsCache = null;
+
+restoreBtnList.addEventListener('click', async () => {
+  const opening = restorePanelList.hidden;
+  restorePanelList.hidden = !opening;
+  if (opening) await loadBackupsIntoSelect();
+});
+
+async function loadBackupsIntoSelect() {
+  restoreSelectList.innerHTML = '<option value="">讀取備份清單中…</option>';
+  try {
+    const res = await fetch(CONFIG.API_URL + '?type=backups', { method: 'GET' });
+    const json = await res.json();
+    if (!json.ok) throw new Error(json.error || '讀取備份清單失敗');
+    backupsCache = json.backups || [];
+    if (!backupsCache.length) {
+      restoreSelectList.innerHTML = '<option value="">目前沒有任何備份檔案</option>';
+      return;
+    }
+    restoreSelectList.innerHTML = backupsCache
+      .map(b => `<option value="${b.id}">${b.date}　${b.name}</option>`)
+      .join('');
+  } catch (err) {
+    restoreSelectList.innerHTML = '<option value="">讀取失敗：' + err.message + '</option>';
+  }
+}
+
+restoreConfirmList.addEventListener('click', async () => {
+  const fileId = restoreSelectList.value;
+  if (!fileId) { alert('請先選擇一份備份。'); return; }
+  const selected = (backupsCache || []).find(b => b.id === fileId);
+  const label = selected ? `${selected.date}　${selected.name}` : fileId;
+  if (!confirm(`確定要用「${label}」覆蓋目前所有紀錄嗎？\n此動作無法復原，目前的資料會被取代。`)) return;
+
+  restoreConfirmList.disabled = true;
+  restoreConfirmList.textContent = '還原中…';
+  try {
+    const res = await fetch(CONFIG.API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'restore', backupFileId: fileId }),
+    });
+    const json = await res.json();
+    if (!json.ok) throw new Error(json.error || '還原失敗');
+    alert(`還原完成，共還原 ${json.restoredRows} 筆紀錄 ✓`);
+    restorePanelList.hidden = true;
+    await loadRecords();
+  } catch (err) {
+    alert('還原失敗：' + err.message);
+  } finally {
+    restoreConfirmList.disabled = false;
+    restoreConfirmList.textContent = '還原此備份';
+  }
+});
+
 /* ---------- 手動備份 ---------- */
 async function runManualBackup(btn) {
   if (!CONFIG.API_URL || CONFIG.API_URL.includes('YOUR_DEPLOYMENT_ID')) {
@@ -547,7 +634,12 @@ async function runManualBackup(btn) {
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify({ action: 'backup' }),
     });
-    const json = await res.json();
+    let json;
+    try {
+      json = await res.json();
+    } catch (parseErr) {
+      throw new Error('伺服器回應異常（通常是瀏覽器同時登入多個 Google 帳號造成），但備份實際上可能已經完成，請直接到雲端硬碟備份資料夾確認。');
+    }
     if (!json.ok) throw new Error(json.error || '備份失敗');
     alert('備份完成 ✓\n檔名：' + json.backupName);
   } catch (err) {

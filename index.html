@@ -6,106 +6,165 @@
 <title>珊的美甲紀錄</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;1,500&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500;600&family=Noto+Sans+TC:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<div class="grain"></div>
-
-<header class="hero">
-  <div class="hero-inner">
-    <p class="eyebrow">Nail Journal</p>
-    <h1>珊的美甲紀錄</h1>
-    <p class="sub">每一次上色，都是一段紀錄</p>
+<header class="topbar">
+  <div class="brand">
+    <span class="brand-mark">✦</span>
+    <div class="brand-text">
+      <h1>珊的美甲紀錄</h1>
+      <p>Nail Care Log</p>
+    </div>
   </div>
-  <div class="hero-line"></div>
+  <nav class="tabs" id="tabs">
+    <button class="tab-btn active" data-tab="add">📝 新增紀錄</button>
+    <button class="tab-btn" data-tab="list">📋 紀錄明細</button>
+    <button class="tab-btn" data-tab="timeline">🗓 時間軸</button>
+  </nav>
 </header>
 
 <main class="wrap">
 
-  <!-- 新增紀錄 -->
-  <section class="card entry-card" id="entryCard">
-    <div class="card-head">
-      <span class="card-tag">新增紀錄</span>
-      <h2>今天做了什麼款式？</h2>
+  <!-- ============ 分頁一：新增 / 編輯紀錄 ============ -->
+  <section class="panel active" id="panel-add">
+    <div class="card entry-card">
+      <div class="card-head">
+        <span class="card-tag" id="formModeTag">新增紀錄</span>
+        <h2 id="formModeTitle">今天做了什麼款式？</h2>
+      </div>
+
+      <form id="entryForm">
+        <div class="field-row two">
+          <label class="field">
+            <span class="field-label">日期</span>
+            <input type="date" id="fDate" required>
+          </label>
+          <label class="field">
+            <span class="field-label">施作部位</span>
+            <select id="fPart" required>
+              <option value="">請選擇</option>
+              <option value="手">手</option>
+              <option value="足">足</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="field-row three">
+          <label class="field">
+            <span class="field-label">款式金額 <em>NTD</em></span>
+            <input type="text" inputmode="numeric" class="money-input" id="fStyle" placeholder="0">
+          </label>
+          <label class="field">
+            <span class="field-label">卸甲金額 <em>NTD</em></span>
+            <input type="text" inputmode="numeric" class="money-input" id="fRemove" placeholder="0">
+          </label>
+          <label class="field">
+            <span class="field-label">優惠/特殊費用 <em>NTD</em></span>
+            <input type="text" inputmode="numeric" class="money-input" id="fDiscount" placeholder="0，折扣可輸入負數">
+          </label>
+        </div>
+
+        <div class="total-line">
+          <span>總額</span>
+          <span class="total-value">NT$ <b id="fTotal">0</b></span>
+        </div>
+
+        <div class="field-row two upload-row">
+          <div class="upload-field">
+            <span class="field-label">參考款式（上傳圖片，單張）</span>
+            <label class="dropzone" id="refDrop">
+              <input type="file" accept="image/*" id="fRefImg" hidden>
+              <div class="dropzone-inner" id="refPreviewWrap">
+                <span class="dz-icon">＋</span>
+                <span class="dz-text">點擊上傳參考圖</span>
+              </div>
+            </label>
+          </div>
+
+          <div class="upload-field">
+            <span class="field-label">施作款式（可上傳多張圖片）</span>
+            <label class="dropzone multi" id="actDrop">
+              <input type="file" accept="image/*" id="fActImg" multiple hidden>
+              <div class="dropzone-inner" id="actAddPreview">
+                <span class="dz-icon">＋</span>
+                <span class="dz-text">點擊新增完成圖（可多選）</span>
+              </div>
+            </label>
+            <div class="thumb-grid" id="actThumbGrid"></div>
+          </div>
+        </div>
+
+        <div class="field-row upload-row">
+          <div class="upload-field">
+            <span class="field-label">施作影片（選填，單支）</span>
+            <label class="dropzone video" id="videoDrop">
+              <input type="file" accept="video/*" id="fVideo" hidden>
+              <div class="dropzone-inner" id="videoPreviewWrap">
+                <span class="dz-icon">▶</span>
+                <span class="dz-text">點擊上傳影片</span>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="submit-btn" id="submitBtn">
+            <span id="submitBtnText">儲存紀錄</span>
+          </button>
+          <button type="button" class="cancel-btn" id="cancelEditBtn" hidden>取消編輯</button>
+        </div>
+        <p class="form-msg" id="formMsg"></p>
+      </form>
     </div>
-
-    <form id="entryForm">
-      <div class="field-row">
-        <label class="field">
-          <span class="field-label">日期</span>
-          <input type="date" id="fDate" required>
-        </label>
-      </div>
-
-      <div class="field-row three">
-        <label class="field">
-          <span class="field-label">款式金額 <em>NTD</em></span>
-          <input type="text" inputmode="numeric" class="money-input" id="fStyle" placeholder="0">
-        </label>
-        <label class="field">
-          <span class="field-label">卸甲金額 <em>NTD</em></span>
-          <input type="text" inputmode="numeric" class="money-input" id="fRemove" placeholder="0">
-        </label>
-        <label class="field">
-          <span class="field-label">優惠/特殊費用 <em>NTD</em></span>
-          <input type="text" inputmode="numeric" class="money-input" id="fDiscount" placeholder="0，折扣可輸入負數">
-        </label>
-      </div>
-
-      <div class="total-line">
-        <span>總額</span>
-        <span class="total-value">NT$ <b id="fTotal">0</b></span>
-      </div>
-
-      <div class="field-row two upload-row">
-        <div class="upload-field">
-          <span class="field-label">參考款式（上傳圖片）</span>
-          <label class="dropzone" id="refDrop">
-            <input type="file" accept="image/*" id="fRefImg" hidden>
-            <div class="dropzone-inner" id="refPreviewWrap">
-              <span class="dz-icon">＋</span>
-              <span class="dz-text">點擊上傳參考圖</span>
-            </div>
-          </label>
-        </div>
-        <div class="upload-field">
-          <span class="field-label">施作款式（上傳圖片）</span>
-          <label class="dropzone" id="actDrop">
-            <input type="file" accept="image/*" id="fActImg" hidden>
-            <div class="dropzone-inner" id="actPreviewWrap">
-              <span class="dz-icon">＋</span>
-              <span class="dz-text">點擊上傳完成圖</span>
-            </div>
-          </label>
-        </div>
-      </div>
-
-      <button type="submit" class="submit-btn" id="submitBtn">
-        <span>儲存紀錄</span>
-      </button>
-      <p class="form-msg" id="formMsg"></p>
-    </form>
   </section>
 
-  <!-- 歷史紀錄 -->
-  <section class="history-section">
-    <div class="card-head history-head">
-      <span class="card-tag gold">歷史紀錄</span>
-      <h2>時間軸</h2>
-      <button class="refresh-btn" id="refreshBtn" title="重新整理">⟳</button>
+  <!-- ============ 分頁二：紀錄明細（表格） ============ -->
+  <section class="panel" id="panel-list">
+    <div class="card-head list-head">
+      <span class="card-tag gold">紀錄明細</span>
+      <h2>所有紀錄</h2>
+      <button class="refresh-btn" id="refreshBtnList" title="重新整理">⟳</button>
+    </div>
+
+    <div class="table-wrap">
+      <table class="record-table" id="recordTable">
+        <thead>
+          <tr>
+            <th>日期</th>
+            <th>部位</th>
+            <th>款式金額</th>
+            <th>卸甲金額</th>
+            <th>優惠/特殊</th>
+            <th>總額</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody id="recordTableBody"></tbody>
+      </table>
+      <p class="empty-state" id="emptyStateList">尚未連接資料，或還沒有任何紀錄。</p>
+    </div>
+  </section>
+
+  <!-- ============ 分頁三：時間軸 ============ -->
+  <section class="panel" id="panel-timeline">
+    <div class="card-head list-head">
+      <span class="card-tag gold">時間軸</span>
+      <h2>紀錄回顧</h2>
+      <button class="refresh-btn" id="refreshBtnTimeline" title="重新整理">⟳</button>
     </div>
 
     <div id="timeline" class="timeline">
-      <p class="empty-state" id="emptyState">尚未連接資料，或還沒有任何紀錄。</p>
+      <p class="empty-state" id="emptyStateTimeline">尚未連接資料，或還沒有任何紀錄。</p>
     </div>
   </section>
 
 </main>
 
 <footer class="foot">
-  <p>資料儲存於 Google 試算表 · 圖片儲存於 Google 雲端硬碟</p>
+  <p>資料儲存於 Google 試算表 · 圖片與影片儲存於 Google 雲端硬碟</p>
 </footer>
 
 <!-- 燈箱 -->

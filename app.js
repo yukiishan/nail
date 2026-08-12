@@ -61,6 +61,11 @@ function formatDate(val) {
   const day = String(d.getDate()).padStart(2, '0');
   return `${y}.${m}.${day}`;
 }
+// 幫 Google 圖片網址加上縮圖尺寸參數，大幅縮小手機載入時的資料量
+function thumbUrl(url) {
+  if (!url || !url.includes('lh3.googleusercontent.com')) return url;
+  return url + '=w300';
+}
 
 /* ---------- 分頁切換（同步頂部分頁與底部導覽列） ---------- */
 const tabBtns = document.querySelectorAll('.tab-btn');
@@ -89,6 +94,8 @@ let allRecords = [];
 
 /* ---------- DOM refs ---------- */
 const fDate = document.getElementById('fDate');
+const fDateDisplay = document.getElementById('fDateDisplay');
+const dateDisplayBox = document.getElementById('dateDisplayBox');
 const fPart = document.getElementById('fPart');
 const fStyle = document.getElementById('fStyle');
 const fRemove = document.getElementById('fRemove');
@@ -145,6 +152,17 @@ const lightbox = document.getElementById('lightbox');
 const lightboxImg = document.getElementById('lightboxImg');
 
 fDate.value = new Date().toISOString().slice(0, 10);
+
+/* ---------- 自訂日期顯示框（與隱藏的原生 input 同步） ---------- */
+function updateDateDisplay() {
+  if (!fDate.value) { fDateDisplay.textContent = '請選擇日期'; return; }
+  const d = new Date(fDate.value + 'T00:00:00');
+  fDateDisplay.textContent = `${d.getFullYear()}年${String(d.getMonth() + 1).padStart(2, '0')}月${String(d.getDate()).padStart(2, '0')}日`;
+}
+fDate.addEventListener('change', updateDateDisplay);
+fDate.addEventListener('focus', () => dateDisplayBox.classList.add('focused'));
+fDate.addEventListener('blur', () => dateDisplayBox.classList.remove('focused'));
+updateDateDisplay();
 
 /* ---------- 金額即時千分位 + 自動加總 ---------- */
 function recalcTotal() {
@@ -239,6 +257,7 @@ function enterEditMode(record) {
   state.editRowIndex = record._row;
 
   fDate.value = record['日期'] ? String(record['日期']).slice(0, 10) : '';
+  updateDateDisplay();
   fPart.value = record['施作部位'] || '';
   fStyle.value = record['款式金額(NTD)'] ? formatThousands(record['款式金額(NTD)']) : '';
   fRemove.value = record['卸甲金額(NTD)'] ? formatThousands(record['卸甲金額(NTD)']) : '';
@@ -290,6 +309,7 @@ function resetForm() {
   renderRefPreview(); renderActThumbs(); renderVideoPreview();
   fRefImg.value = ''; fActImg.value = ''; fVideo.value = '';
   fDate.value = new Date().toISOString().slice(0, 10);
+  updateDateDisplay();
 }
 
 /* ---------- 送出表單（新增 / 更新） ---------- */
@@ -410,9 +430,16 @@ async function loadRecords() {
     emptyStateTimeline.textContent = msg; emptyStateTimeline.style.display = 'block';
     return;
   }
+  emptyStateList.textContent = '載入中…'; emptyStateList.style.display = 'block';
+  emptyStateTimeline.textContent = '載入中…'; emptyStateTimeline.style.display = 'block';
   try {
     const res = await fetch(CONFIG.API_URL, { method: 'GET' });
-    const json = await res.json();
+    let json;
+    try {
+      json = await res.json();
+    } catch (parseErr) {
+      throw new Error('伺服器回應異常（常見原因：瀏覽器同時登入多個 Google 帳號），請確認只登入單一帳號後再試一次。');
+    }
     if (!json.ok) throw new Error(json.error || '讀取失敗');
     allRecords = json.records || [];
     renderTable(allRecords);
@@ -545,11 +572,11 @@ function renderTimeline(records) {
       <div class="entry-images">
         <div>
           <span class="img-block-label">參考款式</span>
-          <div class="img-strip">${refImg ? `<img src="${refImg}" data-full="${refImg}">` : `<span class="no-img">無圖片</span>`}</div>
+          <div class="img-strip">${refImg ? `<img src="${thumbUrl(refImg)}" data-full="${refImg}" loading="lazy" decoding="async">` : `<span class="no-img">無圖片</span>`}</div>
         </div>
         <div>
           <span class="img-block-label">施作款式</span>
-          <div class="img-strip">${actImgs.length ? actImgs.map(u => `<img src="${u}" data-full="${u}">`).join('') : `<span class="no-img">無圖片</span>`}</div>
+          <div class="img-strip">${actImgs.length ? actImgs.map(u => `<img src="${thumbUrl(u)}" data-full="${u}" loading="lazy" decoding="async">`).join('') : `<span class="no-img">無圖片</span>`}</div>
         </div>
         ${videoUrl ? `<div><a class="video-link" href="${videoUrl}" target="_blank" rel="noopener">🎬 觀看施作影片</a></div>` : ''}
       </div>
@@ -597,7 +624,12 @@ function setupRestorePanel({ openBtn, panel, select, confirmBtn, cancelBtn }) {
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify({ action: 'restore', backupFileId: fileId }),
       });
-      const json = await res.json();
+      let json;
+      try {
+        json = await res.json();
+      } catch (parseErr) {
+        throw new Error('伺服器回應異常（常見原因是同時登入多個 Google 帳號），還原可能已經完成，請重新整理確認資料。');
+      }
       if (!json.ok) throw new Error(json.error || '還原失敗');
       alert(`還原完成，共還原 ${json.restoredRows} 筆紀錄 ✓`);
       panel.hidden = true;
@@ -615,7 +647,12 @@ async function loadBackupsIntoSelect(select) {
   select.innerHTML = '<option value="">讀取備份清單中…</option>';
   try {
     const res = await fetch(CONFIG.API_URL + '?type=backups', { method: 'GET' });
-    const json = await res.json();
+    let json;
+    try {
+      json = await res.json();
+    } catch (parseErr) {
+      throw new Error('伺服器回應異常，常見原因是瀏覽器同時登入多個 Google 帳號。請確認只登入單一帳號後，重新整理頁面再試一次。');
+    }
     if (!json.ok) throw new Error(json.error || '讀取備份清單失敗');
     backupsCache = json.backups || [];
     if (!backupsCache.length) {

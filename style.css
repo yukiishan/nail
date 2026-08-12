@@ -219,20 +219,42 @@ input.money-input {
   display: block;
   line-height: 22px;
 }
+input[type="date"] { display: none; }
 select { font-family: var(--sans); appearance: none;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='9'%3E%3Cpath d='M1 1l6 6 6-6' stroke='%237C8270' stroke-width='1.6' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
   background-repeat: no-repeat; background-position: right 14px center;
   padding-right: 36px;
 }
-input[type="date"] {
-  font-family: var(--sans);
-  position: relative;
-}
-input[type="date"]::-webkit-date-and-time-value { text-align: left; height: 22px; margin: 0; }
-input[type="date"]::-webkit-datetime-edit { padding: 0; }
-input[type="date"]::-webkit-inner-spin-button { display: none; }
-input[type="date"]::-webkit-calendar-picker-indicator { padding: 0; margin-left: 6px; }
 input.money-input::placeholder { color: var(--ink-faint); font-family: var(--sans); font-size: 13px; }
+
+/* 自訂日期顯示框：包住隱藏的原生 input，徹底避開各瀏覽器 date 元件的高度差異 */
+.date-display-box {
+  position: relative;
+  height: 48px;
+  box-sizing: border-box;
+  background: var(--surface-alt);
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  padding: 0 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  transition: border-color .15s, box-shadow .15s;
+}
+.date-display-box:hover { border-color: var(--sage); }
+.date-display-box.focused { border-color: var(--sage); box-shadow: 0 0 0 3px var(--sage-soft); }
+#fDateDisplay { font-family: var(--mono); font-size: 15px; color: var(--ink); pointer-events: none; }
+.date-cal-icon { width: 17px; height: 17px; color: var(--ink-faint); pointer-events: none; flex-shrink: 0; }
+.date-native-input {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  opacity: 0;
+  border: none; background: transparent;
+  -webkit-appearance: none; appearance: none;
+  margin: 0; padding: 0;
+  cursor: pointer;
+}
 
 input[type="date"]:focus, select:focus,
 input.money-input:focus {

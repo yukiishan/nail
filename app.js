@@ -62,14 +62,18 @@ function formatDate(val) {
   return `${y}.${m}.${day}`;
 }
 
-/* ---------- 分頁切換 ---------- */
+/* ---------- 分頁切換（同步頂部分頁與底部導覽列） ---------- */
 const tabBtns = document.querySelectorAll('.tab-btn');
+const bnBtns = document.querySelectorAll('.bn-btn');
 const panels = document.querySelectorAll('.panel');
 function switchTab(name) {
   tabBtns.forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+  bnBtns.forEach(b => b.classList.toggle('active', b.dataset.tab === name));
   panels.forEach(p => p.classList.toggle('active', p.id === 'panel-' + name));
+  window.scrollTo({ top: 0, behavior: 'auto' });
 }
 tabBtns.forEach(btn => btn.addEventListener('click', () => switchTab(btn.dataset.tab)));
+bnBtns.forEach(btn => btn.addEventListener('click', () => switchTab(btn.dataset.tab)));
 
 /* ---------- 狀態 ---------- */
 const state = {
@@ -97,6 +101,9 @@ const cancelEditBtn = document.getElementById('cancelEditBtn');
 const formMsg = document.getElementById('formMsg');
 const formModeTag = document.getElementById('formModeTag');
 const formModeTitle = document.getElementById('formModeTitle');
+const backBtn = document.getElementById('backBtn');
+const backupBtnList = document.getElementById('backupBtnList');
+const backupBtnTimeline = document.getElementById('backupBtnTimeline');
 
 const refDrop = document.getElementById('refDrop');
 const fRefImg = document.getElementById('fRefImg');
@@ -111,6 +118,7 @@ const fVideo = document.getElementById('fVideo');
 const videoPreviewWrap = document.getElementById('videoPreviewWrap');
 
 const recordTableBody = document.getElementById('recordTableBody');
+const mobileList = document.getElementById('mobileList');
 const emptyStateList = document.getElementById('emptyStateList');
 const refreshBtnList = document.getElementById('refreshBtnList');
 
@@ -238,6 +246,7 @@ function enterEditMode(record) {
   formModeTitle.textContent = `編輯 ${formatDate(record['日期'])} 的紀錄`;
   submitBtnText.textContent = '更新紀錄';
   cancelEditBtn.hidden = false;
+  backBtn.hidden = false;
 
   switchTab('add');
   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -250,9 +259,11 @@ function exitEditMode() {
   formModeTitle.textContent = '今天做了什麼款式？';
   submitBtnText.textContent = '儲存紀錄';
   cancelEditBtn.hidden = true;
+  backBtn.hidden = true;
   resetForm();
 }
 cancelEditBtn.addEventListener('click', exitEditMode);
+backBtn.addEventListener('click', () => { exitEditMode(); switchTab('list'); });
 
 function resetForm() {
   fPart.value = '';
@@ -329,6 +340,7 @@ function exitEditModeSilently() {
   formModeTitle.textContent = '今天做了什麼款式？';
   submitBtnText.textContent = '儲存紀錄';
   cancelEditBtn.hidden = true;
+  backBtn.hidden = true;
   resetForm();
 }
 
@@ -381,9 +393,11 @@ function sortedRecords(records) {
   return [...records].sort((a, b) => new Date(b['日期']) - new Date(a['日期']));
 }
 
-/* ---------- 紀錄明細（表格） ---------- */
+/* ---------- 紀錄明細（表格 + 手機卡片） ---------- */
 function renderTable(records) {
   recordTableBody.innerHTML = '';
+  mobileList.innerHTML = '';
+
   if (!records.length) {
     emptyStateList.style.display = 'block';
     emptyStateList.textContent = '還沒有任何紀錄，新增第一筆吧！';
@@ -391,7 +405,10 @@ function renderTable(records) {
   }
   emptyStateList.style.display = 'none';
 
-  sortedRecords(records).forEach(r => {
+  const list = sortedRecords(records);
+  renderMobileList(list);
+
+  list.forEach(r => {
     const styleAmount = Number(r['款式金額(NTD)']) || 0;
     const removeAmount = Number(r['卸甲金額(NTD)']) || 0;
     const discount = Number(r['優惠/特殊費用(NTD)']) || 0;
@@ -416,6 +433,37 @@ function renderTable(records) {
     tr.querySelector('.delete').addEventListener('click', (ev) => { ev.stopPropagation(); deleteRecord(r._row); });
     tr.addEventListener('click', () => enterEditMode(r));
     recordTableBody.appendChild(tr);
+  });
+}
+
+function renderMobileList(list) {
+  mobileList.innerHTML = '';
+  list.forEach(r => {
+    const styleAmount = Number(r['款式金額(NTD)']) || 0;
+    const removeAmount = Number(r['卸甲金額(NTD)']) || 0;
+    const discount = Number(r['優惠/特殊費用(NTD)']) || 0;
+    const total = Number(r['總額(NTD)']) || (styleAmount + removeAmount + discount);
+
+    const card = document.createElement('div');
+    card.className = 'mobile-record-card';
+    card.innerHTML = `
+      <div class="mrc-top">
+        <span class="mrc-date">${formatDate(r['日期'])}</span>
+        <span class="mrc-total">NT$ ${formatThousands(total)}</span>
+      </div>
+      <div class="mrc-mid">
+        <span class="part-badge">${r['施作部位'] || '—'}</span>
+        <span class="mrc-breakdown">款式 ${formatThousands(styleAmount)}・卸甲 ${formatThousands(removeAmount)}・優惠 ${formatThousands(discount)}</span>
+      </div>
+      <div class="mrc-actions">
+        <button type="button" class="icon-btn edit" title="編輯">✎</button>
+        <button type="button" class="icon-btn delete" title="刪除">🗑</button>
+      </div>
+    `;
+    card.querySelector('.edit').addEventListener('click', (ev) => { ev.stopPropagation(); enterEditMode(r); });
+    card.querySelector('.delete').addEventListener('click', (ev) => { ev.stopPropagation(); deleteRecord(r._row); });
+    card.addEventListener('click', () => enterEditMode(r));
+    mobileList.appendChild(card);
   });
 }
 
@@ -485,6 +533,34 @@ function openLightbox(src) {
   lightbox.classList.add('open');
 }
 lightbox.addEventListener('click', () => { lightbox.classList.remove('open'); lightboxImg.src = ''; });
+
+/* ---------- 手動備份 ---------- */
+async function runManualBackup(btn) {
+  if (!CONFIG.API_URL || CONFIG.API_URL.includes('YOUR_DEPLOYMENT_ID')) {
+    alert('尚未設定 Google Apps Script 網址。');
+    return;
+  }
+  const original = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = '⏳';
+  try {
+    const res = await fetch(CONFIG.API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'backup' }),
+    });
+    const json = await res.json();
+    if (!json.ok) throw new Error(json.error || '備份失敗');
+    alert('備份完成 ✓\n檔名：' + json.backupName);
+  } catch (err) {
+    alert('備份失敗：' + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = original;
+  }
+}
+backupBtnList.addEventListener('click', () => runManualBackup(backupBtnList));
+backupBtnTimeline.addEventListener('click', () => runManualBackup(backupBtnTimeline));
 
 /* ---------- 重新整理 ---------- */
 function bindRefresh(btn) {

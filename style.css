@@ -135,7 +135,25 @@ body {
   box-shadow: 0 16px 40px -28px rgba(74,79,66,0.25);
 }
 
-.card-head { margin-bottom: 22px; }
+.card-head { margin-bottom: 22px; position: relative; }
+.card-head.form-head { padding-right: 110px; }
+.back-btn {
+  position: absolute;
+  top: 0; right: 0;
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  color: var(--sage-dark);
+  font-family: var(--sans);
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 7px 14px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: border-color .12s, background .12s;
+}
+.back-btn:hover { border-color: var(--sage); background: var(--sage-softer); }
+
+.head-actions { display: flex; gap: 8px; align-items: center; }
 .card-tag {
   display: inline-block;
   font-family: var(--mono);
@@ -464,15 +482,69 @@ input.money-input:focus {
   letter-spacing: 0.02em;
 }
 
+/* ---------- 手機底部導覽列 ---------- */
+.bottom-nav {
+  display: none;
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  z-index: 30;
+  background: var(--surface);
+  border-top: 1px solid var(--line);
+  padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
+  box-shadow: 0 -8px 24px -16px rgba(74,79,66,0.3);
+}
+.bn-btn {
+  flex: 1;
+  border: none;
+  background: transparent;
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 6px 4px;
+  border-radius: 12px;
+  color: var(--ink-faint);
+  cursor: pointer;
+}
+.bn-icon { font-size: 19px; }
+.bn-label { font-size: 10.5px; font-weight: 600; }
+.bn-btn.active { color: var(--sage-dark); background: var(--sage-soft); }
+
+/* ---------- 手機卡片列表（紀錄明細） ---------- */
+.mobile-list { display: none; flex-direction: column; gap: 10px; }
+.mobile-record-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 14px 16px;
+  box-shadow: 0 10px 24px -22px rgba(74,79,66,0.3);
+}
+.mrc-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.mrc-date { font-family: var(--serif); font-weight: 700; font-size: 15.5px; color: var(--ink); }
+.mrc-total { font-family: var(--mono); font-weight: 700; color: #8A6F3F; font-size: 14.5px; }
+.mrc-mid { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+.mrc-breakdown { font-size: 11.5px; color: var(--ink-dim); font-family: var(--mono); }
+.mrc-actions { display: flex; gap: 8px; justify-content: flex-end; }
+.mrc-actions .icon-btn { width: 34px; height: 34px; }
+
+.desktop-only { display: block; }
+.mobile-only { display: none; }
+
 /* ---------- RESPONSIVE ---------- */
-@media (max-width: 640px) {
-  .card { padding: 22px; border-radius: 16px; }
-  .field-row.three { flex-direction: column; }
+@media (max-width: 720px) {
+  body { padding-bottom: 76px; }
+  .topbar .tabs { display: none; }
+  .bottom-nav { display: flex; }
+  .desktop-only { display: none !important; }
+  .mobile-only { display: flex !important; }
+
+  .card { padding: 20px; border-radius: 16px; }
+  .field-row.three, .field-row.two { flex-direction: column; }
   .entry-breakdown { grid-template-columns: 1fr; }
-  .table-wrap { overflow-x: auto; }
-  .record-table { min-width: 620px; }
-  .tabs { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-  .tab-btn { flex-shrink: 0; }
+  .card-head.form-head { padding-right: 96px; }
+  .back-btn { font-size: 11.5px; padding: 6px 11px; }
+
+  .entry-head { flex-direction: column; align-items: flex-start; }
+  .entry-actions { width: 100%; justify-content: space-between; }
+
+  .foot { padding-bottom: 90px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

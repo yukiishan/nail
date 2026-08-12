@@ -26,13 +26,21 @@
   </nav>
 </header>
 
+<!-- 手機版底部導覽列 -->
+<nav class="bottom-nav" id="bottomNav">
+  <button class="bn-btn active" data-tab="add"><span class="bn-icon">📝</span><span class="bn-label">新增</span></button>
+  <button class="bn-btn" data-tab="list"><span class="bn-icon">📋</span><span class="bn-label">明細</span></button>
+  <button class="bn-btn" data-tab="timeline"><span class="bn-icon">🗓</span><span class="bn-label">時間軸</span></button>
+</nav>
+
 <main class="wrap">
 
   <!-- ============ 分頁一：新增 / 編輯紀錄 ============ -->
   <section class="panel active" id="panel-add">
     <div class="card entry-card">
-      <div class="card-head">
+      <div class="card-head form-head">
         <span class="card-tag" id="formModeTag">新增紀錄</span>
+        <button type="button" class="back-btn" id="backBtn" hidden>← 返回明細</button>
         <h2 id="formModeTitle">今天做了什麼款式？</h2>
       </div>
 
@@ -126,10 +134,13 @@
     <div class="card-head list-head">
       <span class="card-tag gold">紀錄明細</span>
       <h2>所有紀錄</h2>
-      <button class="refresh-btn" id="refreshBtnList" title="重新整理">⟳</button>
+      <div class="head-actions">
+        <button class="icon-btn" id="backupBtnList" title="手動備份">💾</button>
+        <button class="refresh-btn" id="refreshBtnList" title="重新整理">⟳</button>
+      </div>
     </div>
 
-    <div class="table-wrap">
+    <div class="table-wrap desktop-only">
       <table class="record-table" id="recordTable">
         <thead>
           <tr>
@@ -144,8 +155,11 @@
         </thead>
         <tbody id="recordTableBody"></tbody>
       </table>
-      <p class="empty-state" id="emptyStateList">尚未連接資料，或還沒有任何紀錄。</p>
     </div>
+
+    <div class="mobile-list mobile-only" id="mobileList"></div>
+
+    <p class="empty-state" id="emptyStateList">尚未連接資料，或還沒有任何紀錄。</p>
   </section>
 
   <!-- ============ 分頁三：時間軸 ============ -->
@@ -153,7 +167,10 @@
     <div class="card-head list-head">
       <span class="card-tag gold">時間軸</span>
       <h2>紀錄回顧</h2>
-      <button class="refresh-btn" id="refreshBtnTimeline" title="重新整理">⟳</button>
+      <div class="head-actions">
+        <button class="icon-btn" id="backupBtnTimeline" title="手動備份">💾</button>
+        <button class="refresh-btn" id="refreshBtnTimeline" title="重新整理">⟳</button>
+      </div>
     </div>
 
     <div id="timeline" class="timeline">

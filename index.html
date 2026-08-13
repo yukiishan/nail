@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>珊的美甲紀錄</title>
 <link rel="icon" href="favicon-32.png" sizes="32x32">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -14,7 +14,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500;600&family=Noto+Sans+TC:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=7">
+<link rel="stylesheet" href="style.css?v=11">
 </head>
 <body>
 
@@ -116,7 +116,10 @@
           </label>
           <label class="field">
             <span class="field-label">優惠/特殊費用 <em>NTD</em></span>
-            <input type="text" inputmode="numeric" class="money-input" id="fDiscount" placeholder="0，折扣可輸入負數">
+            <div class="discount-input-wrap">
+              <input type="text" inputmode="numeric" class="money-input discount-input" id="fDiscount" placeholder="0">
+              <button type="button" class="discount-sign-btn" id="discountSignBtn" title="轉為負數（優惠折抵）">優惠</button>
+            </div>
           </label>
         </div>
 
@@ -152,14 +155,15 @@
 
         <div class="field-row upload-row">
           <div class="upload-field">
-            <span class="field-label">施作影片（選填，單支）</span>
+            <span class="field-label">施作影片（可上傳多支，選填）</span>
             <label class="dropzone video" id="videoDrop">
-              <input type="file" accept="video/*" id="fVideo" hidden>
-              <div class="dropzone-inner" id="videoPreviewWrap">
+              <input type="file" accept="video/*" id="fVideo" multiple hidden>
+              <div class="dropzone-inner" id="videoAddPreview">
                 <span class="dz-icon">▶</span>
-                <span class="dz-text">點擊上傳影片</span>
+                <span class="dz-text">點擊新增影片（可多選）</span>
               </div>
             </label>
+            <div class="video-list" id="videoListGrid"></div>
           </div>
         </div>
 
@@ -275,10 +279,13 @@
 
 <!-- 燈箱 -->
 <div class="lightbox" id="lightbox">
+  <button type="button" class="lb-nav lb-prev" id="lbPrev">‹</button>
   <img id="lightboxImg" src="" alt="">
+  <button type="button" class="lb-nav lb-next" id="lbNext">›</button>
+  <div class="lb-dots" id="lbDots"></div>
 </div>
 
-<script src="config.js?v=7"></script>
-<script src="app.js?v=7"></script>
+<script src="config.js?v=11"></script>
+<script src="app.js?v=11"></script>
 </body>
 </html>

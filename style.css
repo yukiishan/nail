@@ -226,6 +226,27 @@ select { font-family: var(--sans); appearance: none;
 }
 input.money-input::placeholder { color: var(--ink-faint); font-family: var(--sans); font-size: 13px; }
 
+.discount-input-wrap { position: relative; }
+.discount-input { padding-right: 66px; }
+.discount-sign-btn {
+  position: absolute;
+  right: 5px; top: 50%;
+  transform: translateY(-50%);
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 9px;
+  border: 1px solid var(--line-strong);
+  background: var(--sage-soft);
+  color: var(--sage-dark);
+  font-family: var(--sans);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background .12s, border-color .12s;
+}
+.discount-sign-btn:hover { background: var(--sage); color: #fff; }
+.discount-sign-btn:active { transform: translateY(-50%) scale(0.96); }
+
 /* 自訂日期顯示框：包住隱藏的原生 input，徹底避開各瀏覽器 date 元件的高度差異 */
 .date-display-box {
   position: relative;
@@ -353,6 +374,30 @@ input.money-input:focus {
   display: flex; align-items: center; justify-content: center;
 }
 .thumb-remove:hover { background: var(--danger); }
+
+.video-list { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+.video-chip {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--surface-alt);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 9px 10px;
+}
+.video-chip .vc-icon { font-size: 16px; flex-shrink: 0; }
+.video-chip .vc-name {
+  flex: 1; min-width: 0;
+  font-size: 12.5px; color: var(--ink-dim);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.video-chip .vc-remove {
+  border: none; background: var(--surface);
+  border: 1px solid var(--line-strong);
+  width: 24px; height: 24px; border-radius: 50%;
+  cursor: pointer; font-size: 11px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--ink-dim); flex-shrink: 0;
+}
+.video-chip .vc-remove:hover { border-color: var(--danger); color: var(--danger); }
 
 .form-actions { display: flex; gap: 10px; }
 .submit-btn {
@@ -587,6 +632,7 @@ input.money-input:focus {
   padding: 6px 12px; border-radius: 20px; background: var(--sage-softer);
 }
 .video-link:hover { border-color: var(--sage); }
+.video-links { display: flex; gap: 8px; flex-wrap: wrap; }
 
 /* ---------- LIGHTBOX ---------- */
 .lightbox {
@@ -599,7 +645,29 @@ input.money-input:focus {
   cursor: zoom-out;
 }
 .lightbox.open { display: flex; }
-.lightbox img { max-width: 100%; max-height: 100%; border-radius: 12px; box-shadow: 0 30px 80px rgba(0,0,0,0.5); }
+.lightbox img { max-width: 100%; max-height: 100%; border-radius: 12px; box-shadow: 0 30px 80px rgba(0,0,0,0.5); touch-action: pan-y; user-select: none; -webkit-user-drag: none; }
+.lb-nav {
+  position: absolute; top: 50%; transform: translateY(-50%);
+  width: 44px; height: 44px; border-radius: 50%;
+  border: none; background: rgba(255,255,255,0.15);
+  color: #fff; font-size: 26px; line-height: 1;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; z-index: 2;
+  transition: background .15s;
+}
+.lb-nav:hover { background: rgba(255,255,255,0.28); }
+.lb-prev { left: 12px; }
+.lb-next { right: 12px; }
+.lb-nav[hidden] { display: none; }
+.lb-dots {
+  position: absolute; bottom: 22px; left: 0; right: 0;
+  display: flex; justify-content: center; gap: 6px;
+}
+.lb-dots span {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: rgba(255,255,255,0.35);
+}
+.lb-dots span.active { background: #fff; }
 
 /* ---------- FOOTER ---------- */
 .foot {
@@ -673,6 +741,9 @@ input.money-input:focus {
   .entry-breakdown { grid-template-columns: 1fr; }
   .card-head.form-head { margin-bottom: 18px; }
   .back-btn { font-size: 11.5px; padding: 6px 11px; }
+
+  /* 避免 iOS 因欄位字體過小而自動放大畫面 */
+  input[type="date"], select, input.money-input, #fDateDisplay { font-size: 16px; }
 
   .entry-head { flex-direction: row; flex-wrap: wrap; }
   .entry-head-left { flex-wrap: wrap; row-gap: 8px; }

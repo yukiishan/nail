@@ -87,8 +87,7 @@ const state = {
   refImage: null,        // { data, name } 新上傳的參考圖
   existingRefUrl: '',    // 編輯模式下沿用的參考圖網址
   actImages: [],         // 陣列: { kind:'existing', url } 或 { kind:'new', data, name }
-  video: null,           // { data, name } 新上傳影片
-  existingVideoUrl: '',  // 編輯模式下沿用的影片網址
+  videos: [],            // 陣列: { kind:'existing', url } 或 { kind:'new', data, name }
 };
 let allRecords = [];
 
@@ -122,7 +121,7 @@ const actThumbGrid = document.getElementById('actThumbGrid');
 
 const videoDrop = document.getElementById('videoDrop');
 const fVideo = document.getElementById('fVideo');
-const videoPreviewWrap = document.getElementById('videoPreviewWrap');
+const videoListGrid = document.getElementById('videoListGrid');
 
 const recordTableBody = document.getElementById('recordTableBody');
 const mobileList = document.getElementById('mobileList');
@@ -172,6 +171,14 @@ function recalcTotal() {
 bindMoneyInput(fStyle, recalcTotal);
 bindMoneyInput(fRemove, recalcTotal);
 bindMoneyInput(fDiscount, recalcTotal);
+
+const discountSignBtn = document.getElementById('discountSignBtn');
+discountSignBtn.addEventListener('click', () => {
+  const raw = parseMoney(fDiscount.value);
+  if (raw === 0) return;
+  fDiscount.value = formatThousands(-Math.abs(raw));
+  recalcTotal();
+});
 
 /* ---------- 參考款式（單圖） ---------- */
 fRefImg.addEventListener('change', async () => {
@@ -235,38 +242,50 @@ function renderActThumbs() {
   });
 }
 
-/* ---------- 施作影片 ---------- */
+/* ---------- 施作影片（多支） ---------- */
 fVideo.addEventListener('change', async () => {
-  const file = fVideo.files[0];
-  if (!file) return;
-  if (file.size > 45 * 1024 * 1024) {
-    showMsg('影片檔案過大（建議 45MB 以內），請先壓縮後再上傳。', 'error');
-    fVideo.value = '';
-    return;
+  const files = Array.from(fVideo.files || []);
+  if (!files.length) return;
+
+  const oversized = files.filter(f => f.size > 45 * 1024 * 1024);
+  const okFiles = files.filter(f => f.size <= 45 * 1024 * 1024);
+  if (oversized.length) {
+    showMsg(`有 ${oversized.length} 支影片超過 45MB 已略過，請先壓縮後再上傳。`, 'error');
   }
-  videoPreviewWrap.innerHTML = `<span class="dz-processing">處理中…</span>`;
-  videoPreviewWrap.classList.add('has-image');
+  if (!okFiles.length) { fVideo.value = ''; return; }
+
+  const processingChip = document.createElement('div');
+  processingChip.className = 'video-chip';
+  processingChip.innerHTML = `<span class="dz-processing">處理中…</span>`;
+  videoListGrid.appendChild(processingChip);
+
   try {
-    const data = await fileToRawBase64(file);
-    state.video = { data, name: file.name };
-    state.existingVideoUrl = '';
+    for (const file of okFiles) {
+      const data = await fileToRawBase64(file);
+      state.videos.push({ kind: 'new', data, name: file.name });
+    }
   } catch (err) {
     alert('影片讀取失敗：' + err.message);
   }
-  renderVideoPreview();
+  fVideo.value = '';
+  renderVideoList();
 });
-function renderVideoPreview() {
-  if (state.video) {
-    videoPreviewWrap.classList.add('has-image');
-    videoPreviewWrap.innerHTML = `<video src="${state.video.data}" muted></video>`;
-  } else if (state.existingVideoUrl) {
-    videoPreviewWrap.classList.add('has-image');
-    videoPreviewWrap.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;flex-direction:column;gap:6px;">
-      <span style="font-size:22px;">🎬</span><span style="font-size:12px;color:var(--ink-dim);">已有影片（點擊可更換）</span></div>`;
-  } else {
-    videoPreviewWrap.classList.remove('has-image');
-    videoPreviewWrap.innerHTML = `<span class="dz-icon">▶</span><span class="dz-text">點擊上傳影片</span>`;
-  }
+
+function renderVideoList() {
+  videoListGrid.innerHTML = '';
+  state.videos.forEach((v, idx) => {
+    const name = v.kind === 'existing' ? (v.url.split('/').pop() || `影片 ${idx + 1}`) : v.name;
+    const chip = document.createElement('div');
+    chip.className = 'video-chip';
+    chip.innerHTML = `<span class="vc-icon">🎬</span><span class="vc-name">${name}</span><button type="button" class="vc-remove" data-idx="${idx}">✕</button>`;
+    videoListGrid.appendChild(chip);
+  });
+  videoListGrid.querySelectorAll('.vc-remove').forEach(btn => {
+    btn.addEventListener('click', () => {
+      state.videos.splice(Number(btn.dataset.idx), 1);
+      renderVideoList();
+    });
+  });
 }
 
 /* ---------- 表單模式：新增 / 編輯 ---------- */
@@ -290,9 +309,9 @@ function enterEditMode(record) {
   state.actImages = actUrls.map(url => ({ kind: 'existing', url }));
   renderActThumbs();
 
-  state.video = null;
-  state.existingVideoUrl = record['施作影片'] || '';
-  renderVideoPreview();
+  const videoUrls = (record['施作影片'] || '').split(',').map(s => s.trim()).filter(Boolean);
+  state.videos = videoUrls.map(url => ({ kind: 'existing', url }));
+  renderVideoList();
 
   formModeTag.textContent = '編輯紀錄';
   formModeTitle.textContent = `編輯 ${formatDate(record['日期'])} 的紀錄`;
@@ -323,8 +342,8 @@ function resetForm() {
   fTotal.textContent = '0';
   state.refImage = null; state.existingRefUrl = '';
   state.actImages = [];
-  state.video = null; state.existingVideoUrl = '';
-  renderRefPreview(); renderActThumbs(); renderVideoPreview();
+  state.videos = [];
+  renderRefPreview(); renderActThumbs(); renderVideoList();
   fRefImg.value = ''; fActImg.value = ''; fVideo.value = '';
   fDate.value = new Date().toISOString().slice(0, 10);
   updateDateDisplay();
@@ -355,9 +374,8 @@ entryForm.addEventListener('submit', async (e) => {
     existingReferenceImageUrl: state.existingRefUrl || '',
     actualImages: state.actImages.filter(i => i.kind === 'new').map(i => ({ data: i.data, name: i.name })),
     existingActualImageUrls: state.actImages.filter(i => i.kind === 'existing').map(i => i.url),
-    actualVideo: state.video ? state.video.data : '',
-    actualVideoName: state.video ? state.video.name : '',
-    existingActualVideoUrl: state.existingVideoUrl || '',
+    actualVideos: state.videos.filter(v => v.kind === 'new').map(v => ({ data: v.data, name: v.name })),
+    existingActualVideoUrls: state.videos.filter(v => v.kind === 'existing').map(v => v.url),
   };
   if (state.editing) payload.rowIndex = state.editRowIndex;
 
@@ -568,7 +586,7 @@ function renderTimeline(records) {
     const total = Number(r['總額(NTD)']) || (styleAmount + removeAmount + discount);
     const refImg = r['參考款式圖片'];
     const actImgs = (r['施作款式圖片'] || '').split(',').map(s => s.trim()).filter(Boolean);
-    const videoUrl = r['施作影片'];
+    const videoUrls = (r['施作影片'] || '').split(',').map(s => s.trim()).filter(Boolean);
 
     const el = document.createElement('article');
     el.className = 'entry';
@@ -596,11 +614,15 @@ function renderTimeline(records) {
           <span class="img-block-label">施作款式</span>
           <div class="img-strip">${actImgs.length ? actImgs.map(u => `<img src="${thumbUrl(u)}" data-full="${u}" loading="lazy" decoding="async">`).join('') : `<span class="no-img">無圖片</span>`}</div>
         </div>
-        ${videoUrl ? `<div><a class="video-link" href="${videoUrl}" target="_blank" rel="noopener">🎬 觀看施作影片</a></div>` : ''}
+        ${videoUrls.length ? `<div class="video-links">${videoUrls.map((u, i) => `<a class="video-link" href="${u}" target="_blank" rel="noopener">🎬 影片 ${i + 1}</a>`).join('')}</div>` : ''}
       </div>
     `;
     el.querySelectorAll('.img-strip img').forEach(img => {
-      img.addEventListener('click', () => openLightbox(img.dataset.full));
+      img.addEventListener('click', () => {
+        const gallery = [refImg, ...actImgs].filter(Boolean);
+        const startIndex = gallery.indexOf(img.dataset.full);
+        openLightbox(gallery, startIndex >= 0 ? startIndex : 0);
+      });
     });
     el.querySelector('.edit').addEventListener('click', () => enterEditMode(r));
     el.querySelector('.delete').addEventListener('click', () => deleteRecord(r._row));
@@ -608,12 +630,57 @@ function renderTimeline(records) {
   });
 }
 
-/* ---------- 燈箱 ---------- */
-function openLightbox(src) {
-  lightboxImg.src = src;
+/* ---------- 燈箱（支援多張照片左右滑動） ---------- */
+const lbPrev = document.getElementById('lbPrev');
+const lbNext = document.getElementById('lbNext');
+const lbDots = document.getElementById('lbDots');
+
+let lbGallery = [];
+let lbIndex = 0;
+
+function openLightbox(gallery, startIndex = 0) {
+  lbGallery = Array.isArray(gallery) ? gallery : [gallery];
+  lbIndex = startIndex;
+  renderLightbox();
   lightbox.classList.add('open');
 }
-lightbox.addEventListener('click', () => { lightbox.classList.remove('open'); lightboxImg.src = ''; });
+
+function renderLightbox() {
+  lightboxImg.src = lbGallery[lbIndex];
+  const multi = lbGallery.length > 1;
+  lbPrev.hidden = !multi;
+  lbNext.hidden = !multi;
+  lbDots.innerHTML = multi
+    ? lbGallery.map((_, i) => `<span class="${i === lbIndex ? 'active' : ''}"></span>`).join('')
+    : '';
+}
+
+function lbGo(delta) {
+  if (!lbGallery.length) return;
+  lbIndex = (lbIndex + delta + lbGallery.length) % lbGallery.length;
+  renderLightbox();
+}
+
+lbPrev.addEventListener('click', (e) => { e.stopPropagation(); lbGo(-1); });
+lbNext.addEventListener('click', (e) => { e.stopPropagation(); lbGo(1); });
+
+lightbox.addEventListener('click', (e) => {
+  if (e.target === lbPrev || e.target === lbNext) return;
+  lightbox.classList.remove('open');
+  lightboxImg.src = '';
+});
+
+// 觸控滑動切換
+let lbTouchStartX = null;
+lightbox.addEventListener('touchstart', (e) => {
+  lbTouchStartX = e.touches[0].clientX;
+}, { passive: true });
+lightbox.addEventListener('touchend', (e) => {
+  if (lbTouchStartX === null) return;
+  const deltaX = e.changedTouches[0].clientX - lbTouchStartX;
+  if (Math.abs(deltaX) > 40) lbGo(deltaX > 0 ? -1 : 1);
+  lbTouchStartX = null;
+}, { passive: true });
 
 /* ---------- 還原備份 ---------- */
 let backupsCache = null;

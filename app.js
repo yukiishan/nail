@@ -702,7 +702,7 @@ function unlockBodyScroll() {
   document.body.style.left = '';
   document.body.style.right = '';
   document.body.style.width = '';
-  window.scrollTo(0, y);
+  window.scrollTo({ top: y, left: 0, behavior: 'instant' });
   document.documentElement.style.overflowAnchor = '';
 }
 

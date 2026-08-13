@@ -67,11 +67,10 @@ function thumbUrl(url) {
   return url + '=w300';
 }
 
-// 統一處理 fetch + JSON 解析：GET 請求加上時間戳記避免瀏覽器快取舊回應；
+// 讀取用（GET）：安全可重試。加上時間戳記避免瀏覽器快取舊回應；
 // 若解析失敗（常見於行動裝置瀏覽器對 Google 服務的暫時性回應異常），自動重試一次。
 async function fetchJsonRetry(url, options = {}) {
-  const isGet = !options.method || options.method === 'GET';
-  const finalUrl = isGet ? url + (url.includes('?') ? '&' : '?') + '_ts=' + Date.now() : url;
+  const finalUrl = url + (url.includes('?') ? '&' : '?') + '_ts=' + Date.now();
   const doFetch = async () => {
     const res = await fetch(finalUrl, { ...options, cache: 'no-store' });
     return await res.json();
@@ -85,6 +84,18 @@ async function fetchJsonRetry(url, options = {}) {
     } catch (e2) {
       throw new Error('伺服器回應異常，已自動重試一次仍失敗。請稍後再重新整理一次看看。');
     }
+  }
+}
+
+// 寫入用（POST：新增/編輯/刪除/備份/還原）：絕不自動重試，
+// 因為如果第一次其實已經寫入成功、只是回應解析失敗，重試會造成重複寫入（例如新增變兩筆）。
+// 解析失敗時只回報錯誤，請使用者自行重新整理確認資料狀態，避免誤判而重複送出。
+async function fetchJsonOnce(url, options = {}) {
+  const res = await fetch(url, { ...options, cache: 'no-store' });
+  try {
+    return await res.json();
+  } catch (e) {
+    throw new Error('伺服器回應異常，無法確認這次操作是否成功。請重新整理頁面確認資料狀態，避免重複送出，再視情況重新操作一次。');
   }
 }
 
@@ -412,7 +423,7 @@ entryForm.addEventListener('submit', async (e) => {
   showMsg('儲存中，圖片／影片上傳可能需要一些時間…', '');
 
   try {
-    const json = await fetchJsonRetry(CONFIG.API_URL, {
+    const json = await fetchJsonOnce(CONFIG.API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify(payload),
@@ -452,7 +463,7 @@ function showMsg(text, type) {
 async function deleteRecord(rowIndex) {
   if (!confirm('確定要刪除這筆紀錄嗎？此動作無法復原。')) return;
   try {
-    const json = await fetchJsonRetry(CONFIG.API_URL, {
+    const json = await fetchJsonOnce(CONFIG.API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify({ action: 'delete', rowIndex }),
@@ -725,7 +736,7 @@ function setupRestorePanel({ openBtn, panel, select, confirmBtn, cancelBtn }) {
     confirmBtn.disabled = true;
     confirmBtn.textContent = '還原中…';
     try {
-      const json = await fetchJsonRetry(CONFIG.API_URL, {
+      const json = await fetchJsonOnce(CONFIG.API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify({ action: 'restore', backupFileId: fileId }),
@@ -780,7 +791,7 @@ async function runManualBackup(btn) {
   btn.disabled = true;
   btn.innerHTML = '⏳';
   try {
-    const json = await fetchJsonRetry(CONFIG.API_URL, {
+    const json = await fetchJsonOnce(CONFIG.API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify({ action: 'backup' }),

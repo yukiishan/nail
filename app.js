@@ -702,8 +702,13 @@ function unlockBodyScroll() {
   document.body.style.left = '';
   document.body.style.right = '';
   document.body.style.width = '';
-  window.scrollTo({ top: y, left: 0, behavior: 'instant' });
-  document.documentElement.style.overflowAnchor = '';
+  const prevScrollBehavior = document.documentElement.style.scrollBehavior;
+  document.documentElement.style.scrollBehavior = 'auto'; // 用行內樣式強制覆蓋 CSS 的平滑捲動設定
+  requestAnimationFrame(() => {
+    window.scrollTo(0, y);
+    document.documentElement.style.scrollBehavior = prevScrollBehavior;
+    document.documentElement.style.overflowAnchor = '';
+  });
 }
 
 function renderLightbox() {

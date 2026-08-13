@@ -685,21 +685,13 @@ function closeLightbox() {
 }
 
 function lockBodyScroll() {
-  const y = window.scrollY || window.pageYOffset || 0;
-  document.body.dataset.scrollY = String(y);
-  document.body.style.position = 'fixed';
-  document.body.style.top = `-${y}px`;
-  document.body.style.left = '0';
-  document.body.style.right = '0';
+  document.documentElement.style.overflow = 'hidden';
+  document.body.style.overflow = 'hidden';
 }
 
 function unlockBodyScroll() {
-  const y = parseInt(document.body.dataset.scrollY || '0', 10);
-  document.body.style.position = '';
-  document.body.style.top = '';
-  document.body.style.left = '';
-  document.body.style.right = '';
-  window.scrollTo(0, y);
+  document.documentElement.style.overflow = '';
+  document.body.style.overflow = '';
 }
 
 function renderLightbox() {

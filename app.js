@@ -196,7 +196,7 @@ const discountSignBtn = document.getElementById('discountSignBtn');
 discountSignBtn.addEventListener('click', () => {
   const raw = parseMoney(fDiscount.value);
   if (raw === 0) return;
-  fDiscount.value = formatThousands(-Math.abs(raw));
+  fDiscount.value = formatThousands(-raw);
   recalcTotal();
 });
 

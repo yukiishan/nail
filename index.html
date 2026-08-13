@@ -14,7 +14,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500;600&family=Noto+Sans+TC:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=11">
+<link rel="stylesheet" href="style.css?v=13">
 </head>
 <body>
 
@@ -130,14 +130,15 @@
 
         <div class="field-row two upload-row">
           <div class="upload-field">
-            <span class="field-label">參考款式（上傳圖片，單張）</span>
-            <label class="dropzone" id="refDrop">
-              <input type="file" accept="image/*" id="fRefImg" hidden>
-              <div class="dropzone-inner" id="refPreviewWrap">
+            <span class="field-label">參考款式（可上傳多張圖片）</span>
+            <label class="dropzone multi" id="refDrop">
+              <input type="file" accept="image/*" id="fRefImg" multiple hidden>
+              <div class="dropzone-inner" id="refAddPreview">
                 <span class="dz-icon">＋</span>
-                <span class="dz-text">點擊上傳參考圖</span>
+                <span class="dz-text">點擊新增參考圖（可多選）</span>
               </div>
             </label>
+            <div class="thumb-grid" id="refThumbGrid"></div>
           </div>
 
           <div class="upload-field">
@@ -152,6 +153,7 @@
             <div class="thumb-grid" id="actThumbGrid"></div>
           </div>
         </div>
+
 
         <div class="field-row upload-row">
           <div class="upload-field">
@@ -285,7 +287,7 @@
   <div class="lb-dots" id="lbDots"></div>
 </div>
 
-<script src="config.js?v=11"></script>
-<script src="app.js?v=11"></script>
+<script src="config.js?v=13"></script>
+<script src="app.js?v=13"></script>
 </body>
 </html>

@@ -67,6 +67,27 @@ function thumbUrl(url) {
   return url + '=w300';
 }
 
+// 統一處理 fetch + JSON 解析：GET 請求加上時間戳記避免瀏覽器快取舊回應；
+// 若解析失敗（常見於行動裝置瀏覽器對 Google 服務的暫時性回應異常），自動重試一次。
+async function fetchJsonRetry(url, options = {}) {
+  const isGet = !options.method || options.method === 'GET';
+  const finalUrl = isGet ? url + (url.includes('?') ? '&' : '?') + '_ts=' + Date.now() : url;
+  const doFetch = async () => {
+    const res = await fetch(finalUrl, { ...options, cache: 'no-store' });
+    return await res.json();
+  };
+  try {
+    return await doFetch();
+  } catch (e) {
+    await new Promise(r => setTimeout(r, 900));
+    try {
+      return await doFetch();
+    } catch (e2) {
+      throw new Error('伺服器回應異常，已自動重試一次仍失敗。請稍後再重新整理一次看看。');
+    }
+  }
+}
+
 /* ---------- 分頁切換（同步頂部分頁與底部導覽列） ---------- */
 const tabBtns = document.querySelectorAll('.tab-btn');
 const bnBtns = document.querySelectorAll('.bn-btn');
@@ -84,8 +105,7 @@ bnBtns.forEach(btn => btn.addEventListener('click', () => switchTab(btn.dataset.
 const state = {
   editing: false,
   editRowIndex: null,
-  refImage: null,        // { data, name } 新上傳的參考圖
-  existingRefUrl: '',    // 編輯模式下沿用的參考圖網址
+  refImages: [],         // 陣列: { kind:'existing', url } 或 { kind:'new', data, name }
   actImages: [],         // 陣列: { kind:'existing', url } 或 { kind:'new', data, name }
   videos: [],            // 陣列: { kind:'existing', url } 或 { kind:'new', data, name }
 };
@@ -113,7 +133,7 @@ const backupBtnTimeline = document.getElementById('backupBtnTimeline');
 
 const refDrop = document.getElementById('refDrop');
 const fRefImg = document.getElementById('fRefImg');
-const refPreviewWrap = document.getElementById('refPreviewWrap');
+const refThumbGrid = document.getElementById('refThumbGrid');
 
 const actDrop = document.getElementById('actDrop');
 const fActImg = document.getElementById('fActImg');
@@ -180,30 +200,40 @@ discountSignBtn.addEventListener('click', () => {
   recalcTotal();
 });
 
-/* ---------- 參考款式（單圖） ---------- */
+/* ---------- 參考款式（多圖） ---------- */
 fRefImg.addEventListener('change', async () => {
-  const file = fRefImg.files[0];
-  if (!file) return;
-  refPreviewWrap.innerHTML = `<span class="dz-processing">處理中…</span>`;
-  refPreviewWrap.classList.add('has-image');
+  const files = Array.from(fRefImg.files || []);
+  if (!files.length) return;
+  const processingItem = document.createElement('div');
+  processingItem.className = 'thumb-item thumb-processing';
+  processingItem.innerHTML = `<span class="dz-processing">處理中…</span>`;
+  refThumbGrid.appendChild(processingItem);
   try {
-    const data = await fileToCompressedBase64(file);
-    state.refImage = { data, name: file.name };
-    state.existingRefUrl = '';
+    for (const file of files) {
+      const data = await fileToCompressedBase64(file);
+      state.refImages.push({ kind: 'new', data, name: file.name });
+    }
   } catch (err) {
     alert('圖片讀取失敗：' + err.message);
   }
-  renderRefPreview();
+  fRefImg.value = '';
+  renderRefThumbs();
 });
-function renderRefPreview() {
-  const src = state.refImage ? state.refImage.data : state.existingRefUrl;
-  if (src) {
-    refPreviewWrap.classList.add('has-image');
-    refPreviewWrap.innerHTML = `<img src="${src}" alt="參考款式預覽">`;
-  } else {
-    refPreviewWrap.classList.remove('has-image');
-    refPreviewWrap.innerHTML = `<span class="dz-icon">＋</span><span class="dz-text">點擊上傳參考圖</span>`;
-  }
+function renderRefThumbs() {
+  refThumbGrid.innerHTML = '';
+  state.refImages.forEach((img, idx) => {
+    const src = img.kind === 'existing' ? img.url : img.data;
+    const div = document.createElement('div');
+    div.className = 'thumb-item';
+    div.innerHTML = `<img src="${src}" alt="參考款式 ${idx + 1}"><button type="button" class="thumb-remove" data-idx="${idx}">✕</button>`;
+    refThumbGrid.appendChild(div);
+  });
+  refThumbGrid.querySelectorAll('.thumb-remove').forEach(btn => {
+    btn.addEventListener('click', () => {
+      state.refImages.splice(Number(btn.dataset.idx), 1);
+      renderRefThumbs();
+    });
+  });
 }
 
 /* ---------- 施作款式（多圖） ---------- */
@@ -301,9 +331,9 @@ function enterEditMode(record) {
   fDiscount.value = record['優惠/特殊費用(NTD)'] ? formatThousands(record['優惠/特殊費用(NTD)']) : '';
   recalcTotal();
 
-  state.refImage = null;
-  state.existingRefUrl = record['參考款式圖片'] || '';
-  renderRefPreview();
+  const refUrls = (record['參考款式圖片'] || '').split(',').map(s => s.trim()).filter(Boolean);
+  state.refImages = refUrls.map(url => ({ kind: 'existing', url }));
+  renderRefThumbs();
 
   const actUrls = (record['施作款式圖片'] || '').split(',').map(s => s.trim()).filter(Boolean);
   state.actImages = actUrls.map(url => ({ kind: 'existing', url }));
@@ -340,10 +370,10 @@ function resetForm() {
   fPart.value = '';
   fStyle.value = ''; fRemove.value = ''; fDiscount.value = '';
   fTotal.textContent = '0';
-  state.refImage = null; state.existingRefUrl = '';
+  state.refImages = [];
   state.actImages = [];
   state.videos = [];
-  renderRefPreview(); renderActThumbs(); renderVideoList();
+  renderRefThumbs(); renderActThumbs(); renderVideoList();
   fRefImg.value = ''; fActImg.value = ''; fVideo.value = '';
   fDate.value = new Date().toISOString().slice(0, 10);
   updateDateDisplay();
@@ -369,9 +399,8 @@ entryForm.addEventListener('submit', async (e) => {
     styleAmount: parseMoney(fStyle.value),
     removeAmount: parseMoney(fRemove.value),
     discount: parseMoney(fDiscount.value),
-    referenceImage: state.refImage ? state.refImage.data : '',
-    referenceImageName: state.refImage ? state.refImage.name : '',
-    existingReferenceImageUrl: state.existingRefUrl || '',
+    referenceImages: state.refImages.filter(i => i.kind === 'new').map(i => ({ data: i.data, name: i.name })),
+    existingReferenceImageUrls: state.refImages.filter(i => i.kind === 'existing').map(i => i.url),
     actualImages: state.actImages.filter(i => i.kind === 'new').map(i => ({ data: i.data, name: i.name })),
     existingActualImageUrls: state.actImages.filter(i => i.kind === 'existing').map(i => i.url),
     actualVideos: state.videos.filter(v => v.kind === 'new').map(v => ({ data: v.data, name: v.name })),
@@ -383,12 +412,11 @@ entryForm.addEventListener('submit', async (e) => {
   showMsg('儲存中，圖片／影片上傳可能需要一些時間…', '');
 
   try {
-    const res = await fetch(CONFIG.API_URL, {
+    const json = await fetchJsonRetry(CONFIG.API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify(payload),
     });
-    const json = await res.json();
     if (!json.ok) throw new Error(json.error || '未知錯誤');
 
     showMsg(state.editing ? '已成功更新這筆紀錄 ✓' : '已成功儲存這筆紀錄 ✓', 'success');
@@ -424,12 +452,11 @@ function showMsg(text, type) {
 async function deleteRecord(rowIndex) {
   if (!confirm('確定要刪除這筆紀錄嗎？此動作無法復原。')) return;
   try {
-    const res = await fetch(CONFIG.API_URL, {
+    const json = await fetchJsonRetry(CONFIG.API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify({ action: 'delete', rowIndex }),
     });
-    const json = await res.json();
     if (!json.ok) throw new Error(json.error || '刪除失敗');
     await loadRecords();
   } catch (err) {
@@ -469,13 +496,7 @@ async function loadRecords() {
   emptyStateList.textContent = '載入中…'; emptyStateList.style.display = 'block';
   emptyStateTimeline.textContent = '載入中…'; emptyStateTimeline.style.display = 'block';
   try {
-    const res = await fetch(CONFIG.API_URL, { method: 'GET' });
-    let json;
-    try {
-      json = await res.json();
-    } catch (parseErr) {
-      throw new Error('伺服器回應異常（常見原因：瀏覽器同時登入多個 Google 帳號），請確認只登入單一帳號後再試一次。');
-    }
+    const json = await fetchJsonRetry(CONFIG.API_URL, { method: 'GET' });
     if (!json.ok) throw new Error(json.error || '讀取失敗');
     allRecords = json.records || [];
     renderTable(allRecords);
@@ -584,7 +605,7 @@ function renderTimeline(records) {
     const removeAmount = Number(r['卸甲金額(NTD)']) || 0;
     const discount = Number(r['優惠/特殊費用(NTD)']) || 0;
     const total = Number(r['總額(NTD)']) || (styleAmount + removeAmount + discount);
-    const refImg = r['參考款式圖片'];
+    const refImgs = (r['參考款式圖片'] || '').split(',').map(s => s.trim()).filter(Boolean);
     const actImgs = (r['施作款式圖片'] || '').split(',').map(s => s.trim()).filter(Boolean);
     const videoUrls = (r['施作影片'] || '').split(',').map(s => s.trim()).filter(Boolean);
 
@@ -608,7 +629,7 @@ function renderTimeline(records) {
       <div class="entry-images">
         <div>
           <span class="img-block-label">參考款式</span>
-          <div class="img-strip">${refImg ? `<img src="${thumbUrl(refImg)}" data-full="${refImg}" loading="lazy" decoding="async">` : `<span class="no-img">無圖片</span>`}</div>
+          <div class="img-strip">${refImgs.length ? refImgs.map(u => `<img src="${thumbUrl(u)}" data-full="${u}" loading="lazy" decoding="async">`).join('') : `<span class="no-img">無圖片</span>`}</div>
         </div>
         <div>
           <span class="img-block-label">施作款式</span>
@@ -619,7 +640,7 @@ function renderTimeline(records) {
     `;
     el.querySelectorAll('.img-strip img').forEach(img => {
       img.addEventListener('click', () => {
-        const gallery = [refImg, ...actImgs].filter(Boolean);
+        const gallery = [...refImgs, ...actImgs];
         const startIndex = gallery.indexOf(img.dataset.full);
         openLightbox(gallery, startIndex >= 0 ? startIndex : 0);
       });
@@ -704,17 +725,11 @@ function setupRestorePanel({ openBtn, panel, select, confirmBtn, cancelBtn }) {
     confirmBtn.disabled = true;
     confirmBtn.textContent = '還原中…';
     try {
-      const res = await fetch(CONFIG.API_URL, {
+      const json = await fetchJsonRetry(CONFIG.API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify({ action: 'restore', backupFileId: fileId }),
       });
-      let json;
-      try {
-        json = await res.json();
-      } catch (parseErr) {
-        throw new Error('伺服器回應異常（常見原因是同時登入多個 Google 帳號），還原可能已經完成，請重新整理確認資料。');
-      }
       if (!json.ok) throw new Error(json.error || '還原失敗');
       alert(`還原完成，共還原 ${json.restoredRows} 筆紀錄 ✓`);
       panel.hidden = true;
@@ -731,13 +746,7 @@ function setupRestorePanel({ openBtn, panel, select, confirmBtn, cancelBtn }) {
 async function loadBackupsIntoSelect(select) {
   select.innerHTML = '<option value="">讀取備份清單中…</option>';
   try {
-    const res = await fetch(CONFIG.API_URL + '?type=backups', { method: 'GET' });
-    let json;
-    try {
-      json = await res.json();
-    } catch (parseErr) {
-      throw new Error('伺服器回應異常，常見原因是瀏覽器同時登入多個 Google 帳號。請確認只登入單一帳號後，重新整理頁面再試一次。');
-    }
+    const json = await fetchJsonRetry(CONFIG.API_URL + '?type=backups', { method: 'GET' });
     if (!json.ok) throw new Error(json.error || '讀取備份清單失敗');
     backupsCache = json.backups || [];
     if (!backupsCache.length) {
@@ -771,17 +780,11 @@ async function runManualBackup(btn) {
   btn.disabled = true;
   btn.innerHTML = '⏳';
   try {
-    const res = await fetch(CONFIG.API_URL, {
+    const json = await fetchJsonRetry(CONFIG.API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify({ action: 'backup' }),
     });
-    let json;
-    try {
-      json = await res.json();
-    } catch (parseErr) {
-      throw new Error('伺服器回應異常（通常是瀏覽器同時登入多個 Google 帳號造成），但備份實際上可能已經完成，請直接到雲端硬碟備份資料夾確認。');
-    }
     if (!json.ok) throw new Error(json.error || '備份失敗');
     alert('備份完成 ✓\n檔名：' + json.backupName);
   } catch (err) {

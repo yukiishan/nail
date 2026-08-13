@@ -675,6 +675,31 @@ function openLightbox(gallery, startIndex = 0) {
   lbIndex = startIndex;
   renderLightbox();
   lightbox.classList.add('open');
+  lockBodyScroll();
+}
+
+function closeLightbox() {
+  lightbox.classList.remove('open');
+  lightboxImg.src = '';
+  unlockBodyScroll();
+}
+
+function lockBodyScroll() {
+  const y = window.scrollY || window.pageYOffset || 0;
+  document.body.dataset.scrollY = String(y);
+  document.body.style.position = 'fixed';
+  document.body.style.top = `-${y}px`;
+  document.body.style.left = '0';
+  document.body.style.right = '0';
+}
+
+function unlockBodyScroll() {
+  const y = parseInt(document.body.dataset.scrollY || '0', 10);
+  document.body.style.position = '';
+  document.body.style.top = '';
+  document.body.style.left = '';
+  document.body.style.right = '';
+  window.scrollTo(0, y);
 }
 
 function renderLightbox() {
@@ -698,20 +723,26 @@ lbNext.addEventListener('click', (e) => { e.stopPropagation(); lbGo(1); });
 
 lightbox.addEventListener('click', (e) => {
   if (e.target === lbPrev || e.target === lbNext) return;
-  lightbox.classList.remove('open');
-  lightboxImg.src = '';
+  closeLightbox();
 });
 
-// 觸控滑動切換
+// 觸控滑動切換（同時擋掉背景頁面被一起滑動）
 let lbTouchStartX = null;
+let lbTouchStartY = null;
 lightbox.addEventListener('touchstart', (e) => {
   lbTouchStartX = e.touches[0].clientX;
+  lbTouchStartY = e.touches[0].clientY;
 }, { passive: true });
+lightbox.addEventListener('touchmove', (e) => {
+  e.preventDefault();
+}, { passive: false });
 lightbox.addEventListener('touchend', (e) => {
   if (lbTouchStartX === null) return;
   const deltaX = e.changedTouches[0].clientX - lbTouchStartX;
-  if (Math.abs(deltaX) > 40) lbGo(deltaX > 0 ? -1 : 1);
+  const deltaY = e.changedTouches[0].clientY - lbTouchStartY;
+  if (Math.abs(deltaX) > 40 && Math.abs(deltaX) > Math.abs(deltaY)) lbGo(deltaX > 0 ? -1 : 1);
   lbTouchStartX = null;
+  lbTouchStartY = null;
 }, { passive: true });
 
 /* ---------- 還原備份 ---------- */

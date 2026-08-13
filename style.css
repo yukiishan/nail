@@ -643,6 +643,8 @@ input.money-input:focus {
   z-index: 50;
   padding: 24px;
   cursor: zoom-out;
+  touch-action: none;
+  overscroll-behavior: contain;
 }
 .lightbox.open { display: flex; }
 .lightbox img { max-width: 100%; max-height: 100%; border-radius: 12px; box-shadow: 0 30px 80px rgba(0,0,0,0.5); touch-action: pan-y; user-select: none; -webkit-user-drag: none; }
@@ -738,7 +740,10 @@ input.money-input:focus {
   .field-row.two .field,
   .field-row.three .field,
   .field-row .upload-field { flex: none; width: 100%; }
-  .entry-breakdown { grid-template-columns: 1fr; }
+  .entry-breakdown { gap: 6px; }
+  .bd-item { padding: 7px 6px; }
+  .bd-label { font-size: 9.5px; }
+  .bd-value { font-size: 12px; }
   .card-head.form-head { margin-bottom: 18px; }
   .back-btn { font-size: 11.5px; padding: 6px 11px; }
 

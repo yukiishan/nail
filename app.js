@@ -42,6 +42,8 @@ async function doLogin() {
       startTokenHeartbeat();
       document.getElementById('loginScreen').style.display = 'none';
       document.getElementById('app').style.display = 'block';
+      switchTab('timeline');
+      window.scrollTo(0, 0);
       loadRecords();
     } else {
       err.textContent = json.error || '密碼錯誤';
@@ -1022,6 +1024,7 @@ if (sessionStorage.getItem(SESSION_KEY) === '1' && TOKEN) {
   if (loginTime && (Date.now() - loginTime) < SESSION_TTL_MS) {
     document.getElementById('loginScreen').style.display = 'none';
     document.getElementById('app').style.display = 'block';
+    switchTab('timeline');
     startTokenHeartbeat();
     loadRecords();
   } else {

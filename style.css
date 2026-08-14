@@ -566,11 +566,12 @@ input.money-input:focus {
 /* ---------- 黏著子標題（紀錄明細／時間軸 頂部固定區塊） ---------- */
 .sticky-subheader {
   position: sticky;
-  top: var(--topbar-h, 78px);
+  top: calc(var(--topbar-h, 78px) - 2px); /* 與頂部導覽列輕微重疊，蓋住次像素誤差造成的細縫（黏著狀態下 margin 無效，必須調整 top） */
   z-index: 15;
   background: var(--bg);
   padding-top: 6px;
-  margin-top: -2px; /* 與頂部導覽列輕微重疊，蓋住次像素誤差造成的細縫 */
+  transform: translateZ(0); /* 強制獨立合成層，避免捲動時與底下內容撕裂/閃爍 */
+  will-change: transform;
 }
 .sticky-subheader::after {
   content: "";

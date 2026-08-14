@@ -14,9 +14,46 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500;600&family=Noto+Sans+TC:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=20">
+<link rel="stylesheet" href="style.css?v=21">
 </head>
 <body>
+
+<!-- 登入畫面 -->
+<div id="loginScreen">
+  <div class="login-logo">
+    <svg viewBox="0 0 100 100" fill="none" stroke="#F7F9F3" stroke-width="4.5" stroke-linejoin="round" stroke-linecap="round">
+      <defs>
+        <path id="loginPetal" d="M0,0 C-8,-7 -10,-19 -5,-26 C-3,-29 -1,-28 0,-25 C1,-28 3,-29 5,-26 C10,-19 8,-7 0,0 Z"/>
+      </defs>
+      <g transform="translate(50,50)">
+        <use href="#loginPetal"/>
+        <use href="#loginPetal" transform="rotate(72)"/>
+        <use href="#loginPetal" transform="rotate(144)"/>
+        <use href="#loginPetal" transform="rotate(216)"/>
+        <use href="#loginPetal" transform="rotate(288)"/>
+        <circle cx="0" cy="0" r="3"/>
+      </g>
+    </svg>
+  </div>
+  <h1>珊的美甲紀錄</h1>
+  <p>請輸入密碼繼續</p>
+
+  <!-- 真實密碼輸入框（隱藏，承載實際輸入） -->
+  <input type="password" id="pwInput" maxlength="20"
+    style="position:absolute;opacity:0;pointer-events:none;width:1px;height:1px"
+    onkeydown="if(event.key==='Enter')doLogin()" oninput="_updatePwDots()">
+  <!-- 視覺裝飾：固定顯示 4 個圓點 -->
+  <div id="pwDotsBox" onclick="document.getElementById('pwInput').focus()">
+    <span class="pw-dot" id="pwDot0">●</span>
+    <span class="pw-dot" id="pwDot1">●</span>
+    <span class="pw-dot" id="pwDot2">●</span>
+    <span class="pw-dot" id="pwDot3">●</span>
+  </div>
+  <button class="login-btn" onclick="doLogin()">登　入</button>
+  <div class="login-err" id="loginErr"></div>
+</div>
+
+<div id="app">
 
 <header class="topbar">
   <div class="brand">
@@ -287,7 +324,9 @@
   <div class="lb-dots" id="lbDots"></div>
 </div>
 
-<script src="config.js?v=20"></script>
-<script src="app.js?v=20"></script>
+</div><!-- /#app -->
+
+<script src="config.js?v=21"></script>
+<script src="app.js?v=21"></script>
 </body>
 </html>

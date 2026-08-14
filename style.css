@@ -29,6 +29,65 @@
   --mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, monospace;
 }
 
+/* ---------- 登入畫面 ---------- */
+#loginScreen {
+  position: fixed;
+  inset: 0;
+  background: linear-gradient(150deg, var(--sage) 0%, var(--sage-dark) 100%);
+  z-index: 999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: env(safe-area-inset-top, 0px) 32px env(safe-area-inset-bottom, 0px);
+}
+#loginScreen h1, #loginScreen p, #pwDotsBox, .login-btn, .login-err {
+  width: 100%; max-width: 340px;
+}
+.login-logo {
+  width: 80px; height: 80px;
+  background: rgba(255,255,255,0.15);
+  border-radius: 20px;
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 24px;
+}
+.login-logo svg { width: 44px; height: 44px; }
+#loginScreen h1 {
+  font-family: var(--serif);
+  color: #fff; font-size: 24px; font-weight: 600;
+  margin-bottom: 6px; text-align: center;
+}
+#loginScreen p {
+  color: rgba(255,255,255,0.75); font-size: 13px;
+  margin-bottom: 32px; text-align: center;
+  font-family: var(--sans);
+}
+#pwDotsBox {
+  display: flex; justify-content: center; gap: 18px;
+  padding: 16px; background: rgba(255,255,255,0.15);
+  border: 1.5px solid rgba(255,255,255,0.3);
+  border-radius: 14px;
+  cursor: text; margin-bottom: 16px;
+  transition: border-color .2s;
+}
+#pwDotsBox:focus-within { border-color: rgba(255,255,255,0.8); }
+.pw-dot { font-size: 22px; color: rgba(255,255,255,0.3); transition: color .15s; }
+.pw-dot.filled { color: #fff; }
+.login-btn {
+  background: #fff; color: var(--sage-dark);
+  border: none; border-radius: 14px; padding: 15px;
+  font-family: var(--sans); font-size: 16px; font-weight: 700;
+  cursor: pointer; transition: opacity .2s;
+}
+.login-btn:active { opacity: 0.85; }
+.login-err {
+  color: #FFD9CE; font-size: 13px;
+  text-align: center; margin-top: 12px; min-height: 18px;
+  font-family: var(--sans);
+}
+
+#app { display: none; }
+
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
 

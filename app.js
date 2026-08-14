@@ -1,6 +1,106 @@
 /* ============================================================
-   珊的美甲紀錄 - 前端邏輯 (v2)
+   珊的美甲紀錄 - 前端邏輯 (v4)
    ============================================================ */
+
+/* ---------- 登入驗證 ---------- */
+const SESSION_KEY = 'nailjournal_auth';
+const TOKEN_KEY = 'nailjournal_token';
+const LOGIN_TIME_KEY = 'nailjournal_login_time';
+const SESSION_TTL_MS = 4 * 60 * 60 * 1000; // 4 小時
+
+let TOKEN = sessionStorage.getItem(TOKEN_KEY) || '';
+let _expiryHandled = false;
+let _heartbeatTimer = null;
+
+function _updatePwDots() {
+  const len = document.getElementById('pwInput').value.length;
+  for (let i = 0; i < 4; i++) {
+    const dot = document.getElementById('pwDot' + i);
+    if (dot) dot.classList.toggle('filled', len > 0);
+  }
+}
+
+async function doLogin() {
+  const input = document.getElementById('pwInput');
+  const err = document.getElementById('loginErr');
+  const pw = input.value.trim();
+  if (!pw) return;
+  err.textContent = '驗證中…';
+  input.disabled = true;
+  try {
+    const res = await fetch(CONFIG.API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'login', pw }),
+    });
+    const json = await res.json();
+    if (json.ok) {
+      TOKEN = json.token;
+      sessionStorage.setItem(SESSION_KEY, '1');
+      sessionStorage.setItem(TOKEN_KEY, TOKEN);
+      sessionStorage.setItem(LOGIN_TIME_KEY, String(Date.now()));
+      startTokenHeartbeat();
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('app').style.display = 'block';
+      loadRecords();
+    } else {
+      err.textContent = json.error || '密碼錯誤';
+      input.value = ''; _updatePwDots(); input.focus();
+      setTimeout(() => { err.textContent = ''; }, 3000);
+    }
+  } catch (e) {
+    err.textContent = '連線失敗，請確認網路';
+    setTimeout(() => { err.textContent = ''; }, 3000);
+  } finally {
+    input.disabled = false;
+  }
+}
+
+function _checkSessionExpiry() {
+  if (!TOKEN || !sessionStorage.getItem(SESSION_KEY)) return;
+  const loginTime = Number(sessionStorage.getItem(LOGIN_TIME_KEY) || 0);
+  if (!loginTime) return;
+  if (Date.now() - loginTime >= SESSION_TTL_MS) _handleTokenExpiry();
+}
+
+function startTokenHeartbeat() {
+  stopTokenHeartbeat();
+  const loginTime = Number(sessionStorage.getItem(LOGIN_TIME_KEY) || 0);
+  if (!loginTime) return;
+  if (Date.now() - loginTime >= SESSION_TTL_MS) { _handleTokenExpiry(); return; }
+  _heartbeatTimer = setInterval(_checkSessionExpiry, 60 * 1000);
+  document.addEventListener('visibilitychange', _onVisibilityChange);
+}
+
+function stopTokenHeartbeat() {
+  if (_heartbeatTimer) { clearInterval(_heartbeatTimer); _heartbeatTimer = null; }
+  document.removeEventListener('visibilitychange', _onVisibilityChange);
+}
+
+function _onVisibilityChange() {
+  if (document.visibilityState === 'visible') _checkSessionExpiry();
+}
+
+function _handleTokenExpiry() {
+  if (_expiryHandled) return;
+  _expiryHandled = true;
+  stopTokenHeartbeat();
+  TOKEN = '';
+  sessionStorage.removeItem(SESSION_KEY);
+  sessionStorage.removeItem(TOKEN_KEY);
+  sessionStorage.removeItem(LOGIN_TIME_KEY);
+  const ls = document.getElementById('loginScreen');
+  if (ls) ls.style.cssText = 'display:flex!important';
+  const app = document.getElementById('app');
+  if (app) app.style.display = 'none';
+  const err = document.getElementById('loginErr');
+  if (err) err.textContent = '登入已過期，請重新登入';
+  setTimeout(() => {
+    const pw = document.getElementById('pwInput');
+    if (pw) { pw.value = ''; pw.focus(); }
+    _expiryHandled = false;
+  }, 100);
+}
 
 /* ---------- 工具函式 ---------- */
 function formatThousands(num) {
@@ -67,36 +167,48 @@ function thumbUrl(url) {
   return url + '=w300';
 }
 
-// 讀取用（GET）：安全可重試。加上時間戳記避免瀏覽器快取舊回應；
+// 讀取用（GET）：安全可重試，自動帶入 Token。加上時間戳記避免瀏覽器快取舊回應；
 // 若解析失敗（常見於行動裝置瀏覽器對 Google 服務的暫時性回應異常），自動重試一次。
 async function fetchJsonRetry(url, options = {}) {
-  const finalUrl = url + (url.includes('?') ? '&' : '?') + '_ts=' + Date.now();
+  const sep = url.includes('?') ? '&' : '?';
+  const finalUrl = url + sep + 'token=' + encodeURIComponent(TOKEN) + '&_ts=' + Date.now();
   const doFetch = async () => {
     const res = await fetch(finalUrl, { ...options, cache: 'no-store' });
     return await res.json();
   };
+  let json;
   try {
-    return await doFetch();
+    json = await doFetch();
   } catch (e) {
     await new Promise(r => setTimeout(r, 900));
     try {
-      return await doFetch();
+      json = await doFetch();
     } catch (e2) {
       throw new Error('伺服器回應異常，已自動重試一次仍失敗。請稍後再重新整理一次看看。');
     }
   }
+  if (json && json.code === 'INVALID_TOKEN') { _handleTokenExpiry(); throw new Error('AUTH_EXPIRED'); }
+  return json;
 }
 
-// 寫入用（POST：新增/編輯/刪除/備份/還原）：絕不自動重試，
+// 寫入用（POST：新增/編輯/刪除/備份/還原）：自動帶入 Token，絕不自動重試，
 // 因為如果第一次其實已經寫入成功、只是回應解析失敗，重試會造成重複寫入（例如新增變兩筆）。
 // 解析失敗時只回報錯誤，請使用者自行重新整理確認資料狀態，避免誤判而重複送出。
-async function fetchJsonOnce(url, options = {}) {
-  const res = await fetch(url, { ...options, cache: 'no-store' });
+async function fetchJsonOnce(payload) {
+  const res = await fetch(CONFIG.API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    cache: 'no-store',
+    body: JSON.stringify({ ...payload, token: TOKEN }),
+  });
+  let json;
   try {
-    return await res.json();
+    json = await res.json();
   } catch (e) {
     throw new Error('伺服器回應異常，無法確認這次操作是否成功。請重新整理頁面確認資料狀態，避免重複送出，再視情況重新操作一次。');
   }
+  if (json && json.code === 'INVALID_TOKEN') { _handleTokenExpiry(); throw new Error('AUTH_EXPIRED'); }
+  return json;
 }
 
 /* ---------- 分頁切換（同步頂部分頁與底部導覽列） ---------- */
@@ -423,11 +535,7 @@ entryForm.addEventListener('submit', async (e) => {
   showMsg('儲存中，圖片／影片上傳可能需要一些時間…', '');
 
   try {
-    const json = await fetchJsonOnce(CONFIG.API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify(payload),
-    });
+    const json = await fetchJsonOnce(payload);
     if (!json.ok) throw new Error(json.error || '未知錯誤');
 
     showMsg(state.editing ? '已成功更新這筆紀錄 ✓' : '已成功儲存這筆紀錄 ✓', 'success');
@@ -436,6 +544,7 @@ entryForm.addEventListener('submit', async (e) => {
     await loadRecords();
     if (wasEditing) switchTab('list');
   } catch (err) {
+    if (err.message === 'AUTH_EXPIRED') return;
     console.error(err);
     showMsg('儲存失敗：' + err.message, 'error');
   } finally {
@@ -463,14 +572,11 @@ function showMsg(text, type) {
 async function deleteRecord(rowIndex) {
   if (!confirm('確定要刪除這筆紀錄嗎？此動作無法復原。')) return;
   try {
-    const json = await fetchJsonOnce(CONFIG.API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ action: 'delete', rowIndex }),
-    });
+    const json = await fetchJsonOnce({ action: 'delete', rowIndex });
     if (!json.ok) throw new Error(json.error || '刪除失敗');
     await loadRecords();
   } catch (err) {
+    if (err.message === 'AUTH_EXPIRED') return;
     alert('刪除失敗：' + err.message);
   }
 }
@@ -513,6 +619,7 @@ async function loadRecords() {
     renderTable(allRecords);
     renderTimeline(allRecords);
   } catch (err) {
+    if (err.message === 'AUTH_EXPIRED') return;
     console.error(err);
     const msg = '讀取紀錄失敗：' + err.message;
     emptyStateList.textContent = msg; emptyStateList.style.display = 'block';
@@ -776,16 +883,13 @@ function setupRestorePanel({ openBtn, panel, select, confirmBtn, cancelBtn }) {
     confirmBtn.disabled = true;
     confirmBtn.textContent = '還原中…';
     try {
-      const json = await fetchJsonOnce(CONFIG.API_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({ action: 'restore', backupFileId: fileId }),
-      });
+      const json = await fetchJsonOnce({ action: 'restore', backupFileId: fileId });
       if (!json.ok) throw new Error(json.error || '還原失敗');
       alert(`還原完成，共還原 ${json.restoredRows} 筆紀錄 ✓`);
       panel.hidden = true;
       await loadRecords();
     } catch (err) {
+      if (err.message === 'AUTH_EXPIRED') return;
       alert('還原失敗：' + err.message);
     } finally {
       confirmBtn.disabled = false;
@@ -808,6 +912,7 @@ async function loadBackupsIntoSelect(select) {
       .map(b => `<option value="${b.id}">${b.date}　${b.name}</option>`)
       .join('');
   } catch (err) {
+    if (err.message === 'AUTH_EXPIRED') { select.innerHTML = '<option value="">請重新登入</option>'; return; }
     select.innerHTML = '<option value="">讀取失敗：' + err.message + '</option>';
   }
 }
@@ -831,14 +936,11 @@ async function runManualBackup(btn) {
   btn.disabled = true;
   btn.innerHTML = '⏳';
   try {
-    const json = await fetchJsonOnce(CONFIG.API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ action: 'backup' }),
-    });
+    const json = await fetchJsonOnce({ action: 'backup' });
     if (!json.ok) throw new Error(json.error || '備份失敗');
     alert('備份完成 ✓\n檔名：' + json.backupName);
   } catch (err) {
+    if (err.message === 'AUTH_EXPIRED') return;
     alert('備份失敗：' + err.message);
   } finally {
     btn.disabled = false;
@@ -858,5 +960,20 @@ function bindRefresh(btn) {
 bindRefresh(refreshBtnList);
 bindRefresh(refreshBtnTimeline);
 
-/* ---------- 初始載入 ---------- */
-loadRecords();
+/* ---------- 初始載入：檢查登入狀態 ---------- */
+if (sessionStorage.getItem(SESSION_KEY) === '1' && TOKEN) {
+  const loginTime = Number(sessionStorage.getItem(LOGIN_TIME_KEY) || 0);
+  if (loginTime && (Date.now() - loginTime) < SESSION_TTL_MS) {
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    startTokenHeartbeat();
+    loadRecords();
+  } else {
+    _handleTokenExpiry();
+  }
+} else {
+  setTimeout(() => {
+    const pw = document.getElementById('pwInput');
+    if (pw) pw.focus();
+  }, 300);
+}

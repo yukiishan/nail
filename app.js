@@ -56,12 +56,26 @@ async function doLogin() {
   }
 }
 
+const AUTH_LOG_STYLE = 'color:#6E8459;font-weight:700;background:#E4EADB;padding:2px 7px;border-radius:5px;';
+
+function _logAuthStart() {
+  const loginTime = Number(sessionStorage.getItem(LOGIN_TIME_KEY) || 0);
+  if (!loginTime) return;
+  const startStr = new Date(loginTime).toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' });
+  const expiryStr = new Date(loginTime + SESSION_TTL_MS).toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' });
+  const totalMin = Math.round(SESSION_TTL_MS / 60000);
+  console.log(
+    `%c[Auth] 登入時間 ${startStr} → 預計登出 ${expiryStr} （剩 ${totalMin} 分鐘）`,
+    AUTH_LOG_STYLE
+  );
+}
+
 function _logAuthRemaining() {
   const loginTime = Number(sessionStorage.getItem(LOGIN_TIME_KEY) || 0);
   if (!loginTime) return;
   const remainingMin = Math.max(0, Math.round((SESSION_TTL_MS - (Date.now() - loginTime)) / 60000));
   const timeStr = new Date().toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' });
-  console.log(`[Auth] ${timeStr} 剩餘 ${remainingMin} 分鐘`);
+  console.log(`%c[Auth] ${timeStr} 剩餘 ${remainingMin} 分鐘`, AUTH_LOG_STYLE);
 }
 
 function _checkSessionExpiry() {
@@ -77,7 +91,7 @@ function startTokenHeartbeat() {
   const loginTime = Number(sessionStorage.getItem(LOGIN_TIME_KEY) || 0);
   if (!loginTime) return;
   if (Date.now() - loginTime >= SESSION_TTL_MS) { _handleTokenExpiry(); return; }
-  _logAuthRemaining();
+  _logAuthStart();
   _heartbeatTimer = setInterval(_checkSessionExpiry, 60 * 1000);
   document.addEventListener('visibilitychange', _onVisibilityChange);
 }

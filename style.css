@@ -569,7 +569,8 @@ input.money-input:focus {
   top: var(--topbar-h, 78px);
   z-index: 15;
   background: var(--bg);
-  padding-top: 4px;
+  padding-top: 6px;
+  margin-top: -2px; /* 與頂部導覽列輕微重疊，蓋住次像素誤差造成的細縫 */
 }
 .sticky-subheader::after {
   content: "";

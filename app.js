@@ -989,10 +989,18 @@ function _updateTopbarHeight() {
   const topbar = document.querySelector('.topbar');
   if (topbar) document.documentElement.style.setProperty('--topbar-h', topbar.offsetHeight + 'px');
 }
-window.addEventListener('resize', _updateTopbarHeight);
-window.addEventListener('load', _updateTopbarHeight);
-setTimeout(_updateTopbarHeight, 50);
-setTimeout(_updateTopbarHeight, 400); // 字體載入完成後高度可能微調，延遲再算一次
+const _topbarEl = document.querySelector('.topbar');
+if (_topbarEl && 'ResizeObserver' in window) {
+  // 持續監控頂部導覽列的實際高度變化（字型載入完成、safe-area、裝置旋轉等都會觸發），
+  // 比用 setTimeout 猜測時機準確、不會量到還沒穩定的高度。
+  new ResizeObserver(_updateTopbarHeight).observe(_topbarEl);
+} else {
+  window.addEventListener('resize', _updateTopbarHeight);
+  window.addEventListener('load', _updateTopbarHeight);
+  setTimeout(_updateTopbarHeight, 50);
+  setTimeout(_updateTopbarHeight, 400);
+}
+_updateTopbarHeight();
 
 /* ---------- 回到頂端／底端 ---------- */
 function bindScrollJump(topBtn, bottomBtn) {

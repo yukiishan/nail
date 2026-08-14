@@ -33,7 +33,7 @@
 #loginScreen {
   position: fixed;
   inset: 0;
-  background: var(--bg);
+  background: #CCD2CC;
   z-index: 999;
   display: flex;
   flex-direction: column;

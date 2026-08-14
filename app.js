@@ -984,6 +984,30 @@ function bindRefresh(btn) {
 bindRefresh(refreshBtnList);
 bindRefresh(refreshBtnTimeline);
 
+/* ---------- 動態計算頂部導覽高度，讓黏著子標題貼合在它下方 ---------- */
+function _updateTopbarHeight() {
+  const topbar = document.querySelector('.topbar');
+  if (topbar) document.documentElement.style.setProperty('--topbar-h', topbar.offsetHeight + 'px');
+}
+window.addEventListener('resize', _updateTopbarHeight);
+window.addEventListener('load', _updateTopbarHeight);
+setTimeout(_updateTopbarHeight, 50);
+setTimeout(_updateTopbarHeight, 400); // 字體載入完成後高度可能微調，延遲再算一次
+
+/* ---------- 回到頂端／底端 ---------- */
+function bindScrollJump(topBtn, bottomBtn) {
+  topBtn.addEventListener('click', () => window.scrollTo(0, 0));
+  bottomBtn.addEventListener('click', () => window.scrollTo(0, document.body.scrollHeight));
+}
+bindScrollJump(
+  document.getElementById('scrollTopBtnList'),
+  document.getElementById('scrollBottomBtnList')
+);
+bindScrollJump(
+  document.getElementById('scrollTopBtnTimeline'),
+  document.getElementById('scrollBottomBtnTimeline')
+);
+
 /* ---------- 初始載入：檢查登入狀態 ---------- */
 if (sessionStorage.getItem(SESSION_KEY) === '1' && TOKEN) {
   const loginTime = Number(sessionStorage.getItem(LOGIN_TIME_KEY) || 0);

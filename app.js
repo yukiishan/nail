@@ -12,6 +12,28 @@ let TOKEN = sessionStorage.getItem(TOKEN_KEY) || '';
 let _expiryHandled = false;
 let _heartbeatTimer = null;
 
+/* 手機鍵盤跳出時，畫面可視高度會縮小；用 visualViewport 動態調整登入畫面高度，
+   避免登入按鈕被鍵盤上方的工具列（上下箭頭/完成鍵）擋住 */
+function _adjustLoginScreenForKeyboard() {
+  const ls = document.getElementById('loginScreen');
+  if (!ls || !window.visualViewport) return;
+  ls.style.height = window.visualViewport.height + 'px';
+}
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', _adjustLoginScreenForKeyboard);
+  window.visualViewport.addEventListener('scroll', _adjustLoginScreenForKeyboard);
+}
+
+(function bindLoginKeyboardListeners() {
+  const pwInput = document.getElementById('pwInput');
+  if (!pwInput) return;
+  pwInput.addEventListener('focus', () => setTimeout(_adjustLoginScreenForKeyboard, 50));
+  pwInput.addEventListener('blur', () => {
+    const ls = document.getElementById('loginScreen');
+    if (ls) ls.style.height = '';
+  });
+})();
+
 function _updatePwDots() {
   const len = document.getElementById('pwInput').value.length;
   for (let i = 0; i < 4; i++) {

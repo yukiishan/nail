@@ -32,7 +32,8 @@
 /* ---------- 登入畫面 ---------- */
 #loginScreen {
   position: fixed;
-  inset: 0;
+  top: 0; left: 0; right: 0;
+  height: 100vh;
   background: #CCD2CC;
   z-index: 999;
   display: flex;
@@ -40,6 +41,8 @@
   align-items: center;
   justify-content: center;
   padding: env(safe-area-inset-top, 0px) 32px env(safe-area-inset-bottom, 0px);
+  overflow: hidden;
+  transition: height .15s ease;
 }
 #loginScreen h1, #loginScreen p, #pwDotsBox, .login-btn, .login-err {
   width: 100%; max-width: 340px;

@@ -772,14 +772,23 @@ input.money-input:focus {
 .bottom-nav {
   display: none;
   position: fixed;
-  left: 12px; right: 12px; bottom: 0;
+  left: 12px; right: 12px; bottom: calc(14px + env(safe-area-inset-bottom));
   z-index: 30;
   background: var(--surface);
   border: 1px solid var(--line);
-  border-bottom: none;
-  border-radius: 20px 20px 0 0;
-  padding: 8px 6px calc(8px + env(safe-area-inset-bottom));
+  border-radius: 20px;
+  padding: 8px 6px;
   box-shadow: 0 14px 32px -12px rgba(74,79,66,0.35);
+}
+
+.bottom-fade {
+  display: none;
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  height: calc(14px + env(safe-area-inset-bottom) + 34px);
+  background: linear-gradient(180deg, transparent 0%, var(--bg) 65%);
+  pointer-events: none;
+  z-index: 29;
 }
 .bn-btn {
   flex: 1;
@@ -820,6 +829,7 @@ input.money-input:focus {
   body { padding-bottom: 100px; }
   .topbar .tabs { display: none; }
   .bottom-nav { display: flex; }
+  .bottom-fade { display: block; }
   .desktop-only { display: none !important; }
   .mobile-only { display: flex !important; }
 
